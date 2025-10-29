@@ -273,7 +273,7 @@ export default function KnowledgeArticlePage({ params }) {
                     )}
                   </div>
 
-                  <div className="flex items-center space-x-2 ml-6">
+                  {/* <div className="flex items-center space-x-2 ml-6">
                     <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                       <Share2 className="h-5 w-5" />
                     </button>
@@ -283,7 +283,7 @@ export default function KnowledgeArticlePage({ params }) {
                     <button className="p-2 text-gray-400 hover:text-gray-600 rounded-lg hover:bg-gray-100 transition-colors">
                       <Download className="h-5 w-5" />
                     </button>
-                  </div>
+                  </div> */}
                 </div>
               </div>
 
