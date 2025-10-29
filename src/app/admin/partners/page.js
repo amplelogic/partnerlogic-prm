@@ -411,12 +411,13 @@ export default function AdminPartnersPage() {
                         <Eye className="h-4 w-4 mr-1" />
                         View
                       </Link>
-                      <button
+                      <Link
+                        href={`/admin/partners/${partner.id}/edit`}
                         className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                       >
                         <Edit2 className="h-4 w-4 mr-1" />
                         Edit
-                      </button>
+                      </Link>
                     </div>
                   </div>
                 </div>

@@ -1,0 +1,472 @@
+// src/app/admin/partners/[id]/edit/page.js
+'use client'
+
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { useRouter } from 'next/navigation'
+import Link from 'next/link'
+import { 
+  ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, 
+  Phone, Building2, Shield
+} from 'lucide-react'
+
+export default function EditPartnerPage({ params }) {
+  const [loading, setLoading] = useState(true)
+  const [saving, setSaving] = useState(false)
+  const [errors, setErrors] = useState({})
+  const [success, setSuccess] = useState(false)
+  
+  const [formData, setFormData] = useState({
+    // Partner Info
+    first_name: '',
+    last_name: '',
+    email: '',
+    phone: '',
+    status: 'active',
+    // Organization Info
+    organization_name: '',
+    organization_type: 'reseller',
+    tier: 'bronze',
+    discount_percentage: 0,
+    mdf_allocation: 0,
+    mdf_enabled: true,
+    organization_id: null
+  })
+
+  const router = useRouter()
+  const supabase = createClient()
+
+  const organizationTypes = [
+    { value: 'reseller', label: 'Reseller Partner' },
+    { value: 'referral', label: 'Referral Partner' },
+    { value: 'full_cycle', label: 'Full-Cycle Partner' },
+    { value: 'white_label', label: 'White-Label Partner' }
+  ]
+
+  const tiers = [
+    { value: 'bronze', label: 'Bronze', discount: 5, mdf: 5000 },
+    { value: 'silver', label: 'Silver', discount: 10, mdf: 10000 },
+    { value: 'gold', label: 'Gold', discount: 15, mdf: 25000 },
+    { value: 'platinum', label: 'Platinum', discount: 20, mdf: 50000 }
+  ]
+
+  const statuses = [
+    { value: 'active', label: 'Active' },
+    { value: 'pending', label: 'Pending' },
+    { value: 'inactive', label: 'Inactive' }
+  ]
+
+  useEffect(() => {
+    loadPartner()
+  }, [params.id])
+
+  const loadPartner = async () => {
+    try {
+      setLoading(true)
+
+      const { data: partnerData, error } = await supabase
+        .from('partners')
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
+        .eq('id', params.id)
+        .single()
+
+      if (error) throw error
+
+      if (partnerData) {
+        setFormData({
+          first_name: partnerData.first_name || '',
+          last_name: partnerData.last_name || '',
+          email: partnerData.email || '',
+          phone: partnerData.phone || '',
+          status: partnerData.status || 'active',
+          organization_name: partnerData.organization?.name || '',
+          organization_type: partnerData.organization?.type || 'reseller',
+          tier: partnerData.organization?.tier || 'bronze',
+          discount_percentage: partnerData.organization?.discount_percentage || 0,
+          mdf_allocation: partnerData.organization?.mdf_allocation || 0,
+          mdf_enabled: partnerData.organization?.mdf_enabled ?? true,
+          organization_id: partnerData.organization_id
+        })
+      }
+    } catch (error) {
+      console.error('Error loading partner:', error)
+      setErrors({ submit: 'Failed to load partner data' })
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const handleInputChange = (e) => {
+    const { name, value, type, checked } = e.target
+    
+    if (name === 'mdf_enabled') {
+      setFormData(prev => ({
+        ...prev,
+        mdf_enabled: checked,
+        mdf_allocation: checked ? prev.mdf_allocation : 0
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+      
+      // Auto-fill discount and MDF based on tier
+      if (name === 'tier') {
+        const tierInfo = tiers.find(t => t.value === value)
+        if (tierInfo) {
+          setFormData(prev => ({
+            ...prev,
+            discount_percentage: tierInfo.discount,
+            mdf_allocation: prev.mdf_enabled ? tierInfo.mdf : 0
+          }))
+        }
+      }
+    }
+    
+    if (errors[name]) {
+      setErrors(prev => ({ ...prev, [name]: '' }))
+    }
+  }
+
+  const validateForm = () => {
+    const newErrors = {}
+    
+    if (!formData.first_name.trim()) newErrors.first_name = 'First name is required'
+    if (!formData.last_name.trim()) newErrors.last_name = 'Last name is required'
+    if (!formData.email.trim()) {
+      newErrors.email = 'Email is required'
+    } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      newErrors.email = 'Invalid email format'
+    }
+    if (!formData.organization_name.trim()) {
+      newErrors.organization_name = 'Organization name is required'
+    }
+
+    setErrors(newErrors)
+    return Object.keys(newErrors).length === 0
+  }
+
+  const handleSubmit = async (e) => {
+    e.preventDefault()
+    
+    if (!validateForm()) return
+
+    try {
+      setSaving(true)
+
+      // Update partner
+      const { error: partnerError } = await supabase
+        .from('partners')
+        .update({
+          first_name: formData.first_name.trim(),
+          last_name: formData.last_name.trim(),
+          email: formData.email.trim(),
+          phone: formData.phone.trim() || null,
+          status: formData.status,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', params.id)
+
+      if (partnerError) throw partnerError
+
+      // Update organization
+      const { error: orgError } = await supabase
+        .from('organizations')
+        .update({
+          name: formData.organization_name.trim(),
+          type: formData.organization_type,
+          tier: formData.tier,
+          discount_percentage: parseInt(formData.discount_percentage),
+          mdf_allocation: formData.mdf_enabled ? parseInt(formData.mdf_allocation) : 0,
+          mdf_enabled: formData.mdf_enabled,
+          updated_at: new Date().toISOString()
+        })
+        .eq('id', formData.organization_id)
+
+      if (orgError) throw orgError
+
+      setSuccess(true)
+      setTimeout(() => {
+        router.push(`/admin/partners/${params.id}`)
+      }, 1500)
+
+    } catch (error) {
+      console.error('Error updating partner:', error)
+      setErrors({ submit: 'Failed to update partner. Please try again.' })
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  if (loading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 rounded w-1/4 mb-6"></div>
+            <div className="bg-white rounded-xl p-6 space-y-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i}>
+                  <div className="h-4 bg-gray-200 rounded w-1/4 mb-2"></div>
+                  <div className="h-10 bg-gray-200 rounded"></div>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (success) {
+    return (
+      <div className="py-6">
+        <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 text-center">
+            <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
+              <CheckCircle className="h-8 w-8 text-green-600" />
+            </div>
+            <h2 className="text-2xl font-bold text-gray-900 mb-2">Partner Updated!</h2>
+            <p className="text-gray-600 mb-6">
+              Partner information has been successfully updated.
+            </p>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mx-auto"></div>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  return (
+    <div className="py-6">
+      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="mb-8">
+          <Link
+            href={`/admin/partners/${params.id}`}
+            className="inline-flex items-center text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="h-5 w-5 mr-1" />
+            Back to Partner
+          </Link>
+          <h1 className="text-2xl font-bold text-gray-900 mt-4">Edit Partner</h1>
+          <p className="text-gray-600 mt-1">Update partner and organization information</p>
+        </div>
+
+        <form onSubmit={handleSubmit} className="bg-white rounded-xl shadow-sm border border-gray-200">
+          <div className="p-6 space-y-6">
+            {errors.submit && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <span>{errors.submit}</span>
+              </div>
+            )}
+
+            {/* Personal Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <User className="h-5 w-5 mr-2 text-gray-400" />
+                Personal Information
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">First Name *</label>
+                  <input
+                    type="text"
+                    name="first_name"
+                    value={formData.first_name}
+                    onChange={handleInputChange}
+                    className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.first_name ? 'border-red-300' : 'border-gray-300'}`}
+                  />
+                  {errors.first_name && <p className="mt-1 text-sm text-red-600">{errors.first_name}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Last Name *</label>
+                  <input
+                    type="text"
+                    name="last_name"
+                    value={formData.last_name}
+                    onChange={handleInputChange}
+                    className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.last_name ? 'border-red-300' : 'border-gray-300'}`}
+                  />
+                  {errors.last_name && <p className="mt-1 text-sm text-red-600">{errors.last_name}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Email *</label>
+                  <input
+                    type="email"
+                    name="email"
+                    value={formData.email}
+                    onChange={handleInputChange}
+                    className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.email ? 'border-red-300' : 'border-gray-300'}`}
+                  />
+                  {errors.email && <p className="mt-1 text-sm text-red-600">{errors.email}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Phone</label>
+                  <input
+                    type="tel"
+                    name="phone"
+                    value={formData.phone}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Status</label>
+                  <select
+                    name="status"
+                    value={formData.status}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                  >
+                    {statuses.map(status => (
+                      <option key={status.value} value={status.value}>{status.label}</option>
+                    ))}
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Organization Information */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Building2 className="h-5 w-5 mr-2 text-gray-400" />
+                Organization Details
+              </h3>
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="md:col-span-2">
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Organization Name *</label>
+                  <input
+                    type="text"
+                    name="organization_name"
+                    value={formData.organization_name}
+                    onChange={handleInputChange}
+                    className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.organization_name ? 'border-red-300' : 'border-gray-300'}`}
+                  />
+                  {errors.organization_name && <p className="mt-1 text-sm text-red-600">{errors.organization_name}</p>}
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Partner Type</label>
+                  <select
+                    name="organization_type"
+                    value={formData.organization_type}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                  >
+                    {organizationTypes.map(type => (
+                      <option key={type.value} value={type.value}>{type.label}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Partner Tier</label>
+                  <select
+                    name="tier"
+                    value={formData.tier}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                  >
+                    {tiers.map(tier => (
+                      <option key={tier.value} value={tier.value}>
+                        {tier.label} - {tier.discount}% discount{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">Discount %</label>
+                  <input
+                    type="number"
+                    name="discount_percentage"
+                    value={formData.discount_percentage}
+                    onChange={handleInputChange}
+                    min="0"
+                    max="100"
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                  />
+                </div>
+
+                {/* MDF Enabled Toggle */}
+                <div className="md:col-span-2">
+                  <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                    <div className="flex-1">
+                      <label htmlFor="mdf_enabled" className="block text-sm font-medium text-gray-900 mb-1">
+                        Enable MDF (Marketing Development Fund)
+                      </label>
+                      <p className="text-sm text-gray-600">
+                        Allow this partner to request and manage marketing development funds
+                      </p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer ml-4">
+                      <input
+                        type="checkbox"
+                        id="mdf_enabled"
+                        name="mdf_enabled"
+                        checked={formData.mdf_enabled}
+                        onChange={handleInputChange}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                    </label>
+                  </div>
+                </div>
+
+                {/* Conditionally show MDF Allocation field */}
+                {formData.mdf_enabled && (
+                  <div className="md:col-span-2">
+                    <label className="block text-sm font-medium text-gray-700 mb-2">MDF Allocation ($)</label>
+                    <input
+                      type="number"
+                      name="mdf_allocation"
+                      value={formData.mdf_allocation}
+                      onChange={handleInputChange}
+                      min="0"
+                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                    />
+                    <p className="mt-1 text-sm text-gray-500">
+                      Annual marketing development fund allocation for this partner
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200 rounded-b-xl flex items-center justify-between">
+            <Link
+              href={`/admin/partners/${params.id}`}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+            >
+              Cancel
+            </Link>
+            <button
+              type="submit"
+              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50"
+            >
+              {saving ? (
+                <>
+                  <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                  Saving...
+                </>
+              ) : (
+                <>
+                  <Save className="h-4 w-4 mr-2" />
+                  Save Changes
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  )
+}

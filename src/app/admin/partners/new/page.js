@@ -23,6 +23,7 @@ export default function NewPartnerPage() {
     tier: 'bronze',
     discount_percentage: 0,
     mdf_allocation: 0,
+    mdf_enabled: false, // NEW: MDF enabled by default
     // Account Type
     account_type: 'partner' // 'partner' or 'admin'
   })
@@ -45,18 +46,29 @@ export default function NewPartnerPage() {
   ]
 
   const handleInputChange = (e) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
+    const { name, value, type, checked } = e.target
     
-    // Auto-fill discount and MDF based on tier
-    if (name === 'tier') {
-      const tierInfo = tiers.find(t => t.value === value)
-      if (tierInfo) {
-        setFormData(prev => ({
-          ...prev,
-          discount_percentage: tierInfo.discount,
-          mdf_allocation: tierInfo.mdf
-        }))
+    // NEW: Handle checkbox for mdf_enabled
+    if (name === 'mdf_enabled') {
+      setFormData(prev => ({
+        ...prev,
+        mdf_enabled: checked,
+        // Reset MDF allocation to 0 if disabled
+        mdf_allocation: checked ? (tiers.find(t => t.value === prev.tier)?.mdf || 0) : 0
+      }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+      
+      // Auto-fill discount and MDF based on tier (only if MDF is enabled)
+      if (name === 'tier') {
+        const tierInfo = tiers.find(t => t.value === value)
+        if (tierInfo) {
+          setFormData(prev => ({
+            ...prev,
+            discount_percentage: tierInfo.discount,
+            mdf_allocation: prev.mdf_enabled ? tierInfo.mdf : 0
+          }))
+        }
       }
     }
     
@@ -107,7 +119,8 @@ export default function NewPartnerPage() {
             type: formData.organization_type,
             tier: formData.tier,
             discount_percentage: parseInt(formData.discount_percentage),
-            mdf_allocation: parseInt(formData.mdf_allocation)
+            mdf_allocation: formData.mdf_enabled ? parseInt(formData.mdf_allocation) : 0,
+            mdf_enabled: formData.mdf_enabled // NEW: Pass MDF enabled flag
           } : null
         }
       })
@@ -311,7 +324,7 @@ export default function NewPartnerPage() {
                     >
                       {tiers.map(tier => (
                         <option key={tier.value} value={tier.value}>
-                          {tier.label} - {tier.discount}% discount, ${tier.mdf.toLocaleString()} MDF
+                          {tier.label} - {tier.discount}% discount{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
                         </option>
                       ))}
                     </select>
@@ -330,17 +343,48 @@ export default function NewPartnerPage() {
                     />
                   </div>
 
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">MDF Allocation ($)</label>
-                    <input
-                      type="number"
-                      name="mdf_allocation"
-                      value={formData.mdf_allocation}
-                      onChange={handleInputChange}
-                      min="0"
-                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
-                    />
+                  {/* NEW: MDF Enabled Toggle */}
+                  <div className="md:col-span-2">
+                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                      <div className="flex-1">
+                        <label htmlFor="mdf_enabled" className="block text-sm font-medium text-gray-900 mb-1">
+                          Enable MDF (Marketing Development Fund)
+                        </label>
+                        <p className="text-sm text-gray-600">
+                          Allow this partner to request and manage marketing development funds
+                        </p>
+                      </div>
+                      <label className="relative inline-flex items-center cursor-pointer ml-4">
+                        <input
+                          type="checkbox"
+                          id="mdf_enabled"
+                          name="mdf_enabled"
+                          checked={formData.mdf_enabled}
+                          onChange={handleInputChange}
+                          className="sr-only peer"
+                        />
+                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                      </label>
+                    </div>
                   </div>
+
+                  {/* NEW: Conditionally show MDF Allocation field */}
+                  {formData.mdf_enabled && (
+                    <div className="md:col-span-2">
+                      <label className="block text-sm font-medium text-gray-700 mb-2">MDF Allocation ($)</label>
+                      <input
+                        type="number"
+                        name="mdf_allocation"
+                        value={formData.mdf_allocation}
+                        onChange={handleInputChange}
+                        min="0"
+                        className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                      />
+                      <p className="mt-1 text-sm text-gray-500">
+                        Annual marketing development fund allocation for this partner
+                      </p>
+                    </div>
+                  )}
                 </div>
               </div>
             )}

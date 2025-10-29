@@ -73,13 +73,22 @@ export default function DashboardLayout({ children }) {
     )
   }
 
-  const navigation = [
+  // NEW: Check if MDF is enabled for this partner
+  const mdfEnabled = partner?.organization?.mdf_enabled !== false // Default to true if not set
+
+  // Base navigation items
+  const baseNavigation = [
     { name: 'Dashboard', href: '/dashboard', icon: Home },
     { name: 'Deals', href: '/dashboard/deals', icon: BarChart3 },
     { name: 'Support', href: '/dashboard/support', icon: Headphones },
     { name: 'Learning', href: '/dashboard/learning', icon: BookOpen },
     { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: FileText },
-    { name: 'MDF Requests', href: '/dashboard/mdf', icon: TrendingUp },
+  ]
+
+  // NEW: Conditionally add MDF if enabled
+  const navigation = [
+    ...baseNavigation,
+    ...(mdfEnabled ? [{ name: 'MDF Requests', href: '/dashboard/mdf', icon: TrendingUp }] : []),
     { name: 'Settings', href: '/dashboard/settings', icon: Settings },
   ].map(item => ({
     ...item,
@@ -165,7 +174,7 @@ export default function DashboardLayout({ children }) {
               <button
                 onClick={() => {
                   setSidebarOpen(false)
-                  onLogout()
+                  handleLogout()
                 }}
                 className="group flex items-center w-full px-4 py-3 text-base font-medium rounded-lg text-gray-600 hover:bg-red-50 hover:text-red-600 transition-all duration-200"
               >
