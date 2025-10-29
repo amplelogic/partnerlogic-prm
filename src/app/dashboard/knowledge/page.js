@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Search, Filter, BookOpen, FileText, Video, Download,
   Star, Clock, User, Tag, ChevronDown, Eye, ExternalLink,
-  Play, Image, FileIcon, Folder
+  Play, Image, FileIcon, Folder, TrendingUp, Award
 } from 'lucide-react'
 
 export default function KnowledgeBasePage() {
@@ -23,15 +23,19 @@ export default function KnowledgeBasePage() {
 
   const supabase = createClient()
 
-  const categories = [
-    { value: 'all', label: 'All Categories', icon: BookOpen, count: 0 },
+  const baseCategories = [
     { value: 'onboarding', label: 'Getting Started', icon: User, count: 0 },
-    { value: 'sales', label: 'Sales Resources', icon: FileText, count: 0 },
+    { value: 'sales', label: 'Sales Resources', icon: TrendingUp, count: 0 },
     { value: 'technical', label: 'Technical Docs', icon: FileIcon, count: 0 },
     { value: 'marketing', label: 'Marketing Materials', icon: Image, count: 0 },
     { value: 'training', label: 'Training Videos', icon: Video, count: 0 },
-    { value: 'case_studies', label: 'Case Studies', icon: Star, count: 0 }
+    { value: 'case_studies', label: 'Case Studies', icon: Award, count: 0 }
   ]
+
+  const [categories, setCategories] = useState([
+    { value: 'all', label: 'All Categories', icon: BookOpen, count: 0 },
+    ...baseCategories
+  ])
 
   const contentTypes = [
     { type: 'article', icon: FileText, label: 'Article' },
@@ -46,6 +50,7 @@ export default function KnowledgeBasePage() {
 
   useEffect(() => {
     filterAndSortArticles()
+    updateCategoryCounts()
   }, [articles, searchTerm, categoryFilter, sortBy, sortOrder])
 
   const loadKnowledgeBase = async () => {
@@ -69,10 +74,11 @@ export default function KnowledgeBasePage() {
         setPartner(partnerData)
         const partnerTier = partnerData.organization?.tier || 'bronze'
 
-        // Get knowledge articles based on partner tier
+        // Get knowledge articles based on partner tier and published status
         const { data: articlesData, error } = await supabase
           .from('knowledge_articles')
           .select('*')
+          .eq('published', true)
           .or(`access_level.eq.all,access_level.eq.${partnerTier}`)
           .order('created_at', { ascending: false })
 
@@ -85,6 +91,17 @@ export default function KnowledgeBasePage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  const updateCategoryCounts = () => {
+    const updatedCategories = categories.map(category => {
+      if (category.value === 'all') {
+        return { ...category, count: articles.length }
+      }
+      const count = articles.filter(article => article.category === category.value).length
+      return { ...category, count }
+    })
+    setCategories(updatedCategories)
   }
 
   const filterAndSortArticles = () => {
@@ -120,15 +137,6 @@ export default function KnowledgeBasePage() {
     })
 
     setFilteredArticles(filtered)
-
-    // Update category counts
-    categories.forEach(category => {
-      if (category.value === 'all') {
-        category.count = articles.length
-      } else {
-        category.count = articles.filter(article => article.category === category.value).length
-      }
-    })
   }
 
   const getContentTypeInfo = (category) => {
@@ -266,7 +274,7 @@ export default function KnowledgeBasePage() {
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
           {/* Sidebar - Categories */}
           <div className="lg:col-span-1">
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6 sticky top-6">
               <h2 className="text-lg font-semibold text-gray-900 mb-4">Categories</h2>
               <nav className="space-y-2">
                 {categories.map((category) => {
@@ -298,6 +306,25 @@ export default function KnowledgeBasePage() {
                   )
                 })}
               </nav>
+
+              {/* Partner Tier Info */}
+              <div className="mt-6 p-4 bg-gradient-to-br from-blue-50 to-purple-50 rounded-lg border border-blue-200">
+                <div className="flex items-center space-x-2 mb-2">
+                  <Star className="h-5 w-5 text-purple-600" />
+                  <h3 className="font-semibold text-gray-900">Your Access</h3>
+                </div>
+                <p className="text-sm text-gray-700">
+                  <strong className="capitalize">{partner?.organization?.tier}</strong> tier partners have access to {
+                    partner?.organization?.tier === 'platinum' ? 'all' :
+                    partner?.organization?.tier === 'gold' ? 'gold, silver, and bronze' :
+                    partner?.organization?.tier === 'silver' ? 'silver and bronze' :
+                    'bronze'
+                  } tier content.
+                </p>
+                <p className="text-xs text-gray-600 mt-2">
+                  Upgrade your tier to unlock premium resources.
+                </p>
+              </div>
             </div>
           </div>
 

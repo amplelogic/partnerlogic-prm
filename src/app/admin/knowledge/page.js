@@ -407,7 +407,7 @@ export default function AdminKnowledgeBasePage() {
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getCategoryColor(article.category)}`}>
                               {categories.find(c => c.value === article.category)?.label || article.category}
                             </span>
-                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${accessBadge.color}`}>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium text-black ${accessBadge.color}`}>
                               {article.access_level === 'all' ? (
                                 <Unlock className="h-3 w-3 mr-1" />
                               ) : (
