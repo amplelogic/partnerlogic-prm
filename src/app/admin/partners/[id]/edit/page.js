@@ -58,12 +58,14 @@ export default function EditPartnerPage({ params }) {
 
   useEffect(() => {
     loadPartner()
-  }, [params.id])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [params.id, supabase])
 
   const loadPartner = async () => {
     try {
       setLoading(true)
 
+      // Force fresh data by using maybeSingle() and checking cache
       const { data: partnerData, error } = await supabase
         .from('partners')
         .select(`
@@ -71,11 +73,34 @@ export default function EditPartnerPage({ params }) {
           organization:organizations(*)
         `)
         .eq('id', params.id)
-        .single()
+        .maybeSingle()
 
-      if (error) throw error
+      if (error) {
+        console.error('Load partner error:', error)
+        throw error
+      }
+
+      if (!partnerData) {
+        throw new Error('Partner not found')
+      }
 
       if (partnerData) {
+        console.log('Loaded partner data:', partnerData)
+        
+        // Ensure we have the organization data
+        if (!partnerData.organization && partnerData.organization_id) {
+          // Fetch organization separately if not loaded
+          const { data: orgData } = await supabase
+            .from('organizations')
+            .select('*')
+            .eq('id', partnerData.organization_id)
+            .single()
+          
+          if (orgData) {
+            partnerData.organization = orgData
+          }
+        }
+        
         setFormData({
           first_name: partnerData.first_name || '',
           last_name: partnerData.last_name || '',
@@ -93,7 +118,7 @@ export default function EditPartnerPage({ params }) {
       }
     } catch (error) {
       console.error('Error loading partner:', error)
-      setErrors({ submit: 'Failed to load partner data' })
+      setErrors({ submit: `Failed to load partner data: ${error.message}` })
     } finally {
       setLoading(false)
     }
@@ -142,6 +167,9 @@ export default function EditPartnerPage({ params }) {
     if (!formData.organization_name.trim()) {
       newErrors.organization_name = 'Organization name is required'
     }
+    if (!formData.organization_id) {
+      newErrors.organization_id = 'Organization ID is missing'
+    }
 
     setErrors(newErrors)
     return Object.keys(newErrors).length === 0
@@ -150,41 +178,83 @@ export default function EditPartnerPage({ params }) {
   const handleSubmit = async (e) => {
     e.preventDefault()
     
-    if (!validateForm()) return
+    if (!validateForm()) {
+      console.error('Validation failed:', errors)
+      return
+    }
 
     try {
       setSaving(true)
+      setErrors({})
+
+      console.log('=== UPDATE STARTING ===')
+      console.log('Partner ID:', params.id)
+      console.log('Organization ID:', formData.organization_id)
+      console.log('Form Data:', formData)
+
+      // Prepare partner update data
+      const partnerUpdatePayload = {
+        first_name: formData.first_name.trim(),
+        last_name: formData.last_name.trim(),
+        email: formData.email.trim(),
+        phone: formData.phone.trim() || null,
+        status: formData.status
+      }
+      
+      console.log('Partner Update Payload:', partnerUpdatePayload)
 
       // Update partner
-      const { error: partnerError } = await supabase
+      const { data: partnerUpdateData, error: partnerError } = await supabase
         .from('partners')
-        .update({
-          first_name: formData.first_name.trim(),
-          last_name: formData.last_name.trim(),
-          email: formData.email.trim(),
-          phone: formData.phone.trim() || null,
-          status: formData.status,
-          updated_at: new Date().toISOString()
-        })
+        .update(partnerUpdatePayload)
         .eq('id', params.id)
+        .select()
 
-      if (partnerError) throw partnerError
+      if (partnerError) {
+        console.error('Partner update error:', partnerError)
+        throw new Error(`Failed to update partner: ${partnerError.message}`)
+      }
+
+      console.log('Partner updated successfully:', partnerUpdateData)
+
+      // Prepare organization update data
+      const orgUpdatePayload = {
+        name: formData.organization_name.trim(),
+        type: formData.organization_type,
+        tier: formData.tier,
+        discount_percentage: parseInt(formData.discount_percentage) || 0,
+        mdf_allocation: formData.mdf_enabled ? (parseInt(formData.mdf_allocation) || 0) : 0,
+        mdf_enabled: formData.mdf_enabled
+      }
+      
+      console.log('Organization Update Payload:', orgUpdatePayload)
 
       // Update organization
-      const { error: orgError } = await supabase
+      const { data: orgUpdateData, error: orgError } = await supabase
         .from('organizations')
-        .update({
-          name: formData.organization_name.trim(),
-          type: formData.organization_type,
-          tier: formData.tier,
-          discount_percentage: parseInt(formData.discount_percentage),
-          mdf_allocation: formData.mdf_enabled ? parseInt(formData.mdf_allocation) : 0,
-          mdf_enabled: formData.mdf_enabled,
-          updated_at: new Date().toISOString()
-        })
+        .update(orgUpdatePayload)
         .eq('id', formData.organization_id)
+        .select()
 
-      if (orgError) throw orgError
+      if (orgError) {
+        console.error('Organization update error:', orgError)
+        throw new Error(`Failed to update organization: ${orgError.message}`)
+      }
+
+      console.log('Organization updated successfully:', orgUpdateData)
+      console.log('=== UPDATE COMPLETED ===')
+
+      // Verify the update by fetching fresh data
+      const { data: verifyData } = await supabase
+        .from('partners')
+        .select(`
+          *,
+          organization:organizations(*)
+        `)
+        .eq('id', params.id)
+        .single()
+      
+      console.log('Verification - Fresh data from DB:', verifyData)
 
       setSuccess(true)
       setTimeout(() => {
@@ -193,7 +263,7 @@ export default function EditPartnerPage({ params }) {
 
     } catch (error) {
       console.error('Error updating partner:', error)
-      setErrors({ submit: 'Failed to update partner. Please try again.' })
+      setErrors({ submit: error.message || 'Failed to update partner. Please try again.' })
     } finally {
       setSaving(false)
     }
@@ -259,6 +329,13 @@ export default function EditPartnerPage({ params }) {
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
                 <AlertTriangle className="h-5 w-5 flex-shrink-0" />
                 <span>{errors.submit}</span>
+              </div>
+            )}
+
+            {errors.organization_id && (
+              <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg flex items-center space-x-2">
+                <AlertTriangle className="h-5 w-5 flex-shrink-0" />
+                <span>{errors.organization_id}</span>
               </div>
             )}
 
