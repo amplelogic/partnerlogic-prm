@@ -190,7 +190,7 @@ export default function NewPartnerPage() {
                   <div className="flex items-center space-x-3">
                     <Building2 className="h-6 w-6 text-blue-600" />
                     <div>
-                      <div className="font-medium">Partner Account</div>
+                      <div className="font-medium text-black">Partner Account</div>
                       <div className="text-sm text-gray-600">External partner organization</div>
                     </div>
                   </div>
@@ -208,7 +208,7 @@ export default function NewPartnerPage() {
                   <div className="flex items-center space-x-3">
                     <User className="h-6 w-6 text-purple-600" />
                     <div>
-                      <div className="font-medium">Admin Account</div>
+                      <div className="font-medium text-black">Admin Account</div>
                       <div className="text-sm text-gray-600">Internal administrator</div>
                     </div>
                   </div>
