@@ -6,8 +6,9 @@ import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useS
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
-import { Building2, DollarSign, User, GripVertical, Calendar } from 'lucide-react'
+import { DollarSign, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+
 // PARTNER STAGES - Only up to closed_lost
 const PARTNER_STAGES = [
   { id: 'new_deal', label: 'New Deal', color: 'bg-gray-100 border-gray-300' },
@@ -18,7 +19,7 @@ const PARTNER_STAGES = [
   { id: 'closed_lost', label: 'Closed Lost', color: 'bg-red-100 border-red-300' }
 ]
 
-// Deal Card Component (Draggable)
+// Deal Card Component (Draggable) - Compact Version
 function DealCard({ deal, isDragging }) {
   const {
     attributes,
@@ -44,70 +45,39 @@ function DealCard({ deal, isDragging }) {
     }).format(amount)
   }
 
-  const getPriorityColor = (priority) => {
-    switch (priority) {
-      case 'urgent': return 'bg-red-500'
-      case 'high': return 'bg-orange-500'
-      case 'medium': return 'bg-yellow-500'
-      case 'low': return 'bg-green-500'
-      default: return 'bg-gray-500'
-    }
-  }
-
   return (
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-lg border border-gray-200 p-3 mb-2 shadow-sm hover:shadow-md transition-shadow cursor-move group"
+      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all cursor-move group"
       {...attributes}
       {...listeners}
     >
-      {/* Drag Handle */}
-      <div className="flex items-start justify-between mb-2">
-        <div className="flex-1 min-w-0">
-          <h4 className="font-semibold text-gray-900 text-xs truncate">
-            {deal.customer_name}
-          </h4>
-          <p className="text-[10px] text-gray-600 truncate mt-0.5">
-            {deal.customer_company}
-          </p>
-        </div>
-        <div className="ml-2 opacity-0 group-hover:opacity-100 transition-opacity">
-          <GripVertical className="h-3 w-3 text-gray-400" />
-        </div>
-      </div>
+      {/* Title */}
+      <h4 className="font-medium text-gray-900 text-xs truncate mb-1.5">
+        {deal.customer_name}
+      </h4>
 
-      {/* Deal Value */}
-      <div className="flex items-center text-xs font-semibold text-green-600 mb-2">
-        <DollarSign className="h-3 w-3 mr-1" />
+      {/* Price */}
+      <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
+        <DollarSign className="h-3 w-3 mr-0.5" />
         {formatCurrency(deal.deal_value)}
       </div>
 
-      {/* Priority Badge */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center space-x-1">
-          <div className={`w-1.5 h-1.5 rounded-full ${getPriorityColor(deal.priority)}`}></div>
-          <span className="text-[10px] text-gray-600 capitalize">{deal.priority}</span>
-        </div>
-        <div className="text-[10px] text-gray-500 flex items-center">
-          <Calendar className="h-2.5 w-2.5 mr-0.5" />
-          {new Date(deal.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
-        </div>
-      </div>
-
-      {/* Open Deal Link */}
+      {/* Open Deal Button */}
       <Link
         href={`/dashboard/deals/${deal.id}`}
         onClick={(e) => e.stopPropagation()}
-        className="block w-full text-center px-2 py-1.5 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-medium rounded transition-colors mt-2"
+        className="flex items-center justify-center w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-medium rounded transition-colors"
       >
-        Open Deal
+        <span>Open</span>
+        <ExternalLink className="h-2.5 w-2.5 ml-1" />
       </Link>
     </div>
   )
 }
 
-// Column Component (Drop Zone)
+// Column Component (Drop Zone) - Narrower
 function KanbanColumn({ stage, deals, activeId }) {
   const { setNodeRef } = useSortable({
     id: stage.id,
@@ -131,12 +101,12 @@ function KanbanColumn({ stage, deals, activeId }) {
   }
 
   return (
-    <div className="flex flex-col w-56 flex-shrink-0 bg-gray-50 rounded-lg">
+    <div className="flex flex-col w-44 flex-shrink-0 bg-gray-50 rounded-lg">
       {/* Column Header */}
-      <div className={`p-3 border-b-4 rounded-t-lg ${stage.color}`}>
+      <div className={`p-2 border-b-3 rounded-t-lg ${stage.color}`}>
         <div className="flex items-center justify-between mb-1">
-          <h3 className="font-semibold text-gray-900 text-xs">{stage.label}</h3>
-          <span className="bg-white px-1.5 py-0.5 rounded-full text-[10px] font-medium text-gray-700">
+          <h3 className="font-semibold text-gray-900 text-[11px] leading-tight">{stage.label}</h3>
+          <span className="bg-white px-1.5 py-0.5 rounded-full text-[9px] font-medium text-gray-700">
             {dealsInStage.length}
           </span>
         </div>
@@ -148,7 +118,7 @@ function KanbanColumn({ stage, deals, activeId }) {
       {/* Drop Zone */}
       <div
         ref={setNodeRef}
-        className="flex-1 p-2 overflow-y-auto min-h-[500px] max-h-[calc(100vh-300px)]"
+        className="flex-1 p-1.5 overflow-y-auto min-h-[500px] max-h-[calc(100vh-300px)]"
       >
         <SortableContext items={dealsInStage.map(d => d.id)} strategy={verticalListSortingStrategy}>
           {dealsInStage.map(deal => (
@@ -161,8 +131,8 @@ function KanbanColumn({ stage, deals, activeId }) {
         </SortableContext>
 
         {dealsInStage.length === 0 && (
-          <div className="text-center py-8 text-gray-400 text-xs">
-            Drop deals here
+          <div className="text-center py-6 text-gray-400 text-[10px]">
+            Drop here
           </div>
         )}
       </div>
@@ -278,7 +248,7 @@ export default function KanbanView({ deals, onDealUpdate }) {
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
     >
-      <div className="flex gap-4 overflow-x-auto pb-4">
+      <div className="flex gap-2 overflow-x-auto pb-4">
         <SortableContext items={PARTNER_STAGES.map(s => s.id)} strategy={verticalListSortingStrategy}>
           {PARTNER_STAGES.map(stage => (
             <KanbanColumn
@@ -293,13 +263,19 @@ export default function KanbanView({ deals, onDealUpdate }) {
 
       <DragOverlay>
         {activeDeal ? (
-          <div className="bg-white rounded-lg border-2 border-blue-500 p-4 shadow-xl rotate-3 cursor-grabbing">
-            <h4 className="font-semibold text-gray-900 text-sm">
+          <div className="bg-white rounded-md border-2 border-blue-500 p-2 shadow-xl rotate-2 cursor-grabbing w-44">
+            <h4 className="font-medium text-gray-900 text-xs truncate">
               {activeDeal.customer_name}
             </h4>
-            <p className="text-xs text-gray-600 mt-1">
-              {activeDeal.customer_company}
-            </p>
+            <div className="flex items-center text-xs font-semibold text-green-600 mt-1">
+              <DollarSign className="h-3 w-3 mr-0.5" />
+              {new Intl.NumberFormat('en-US', {
+                style: 'currency',
+                currency: 'USD',
+                minimumFractionDigits: 0,
+                notation: 'compact'
+              }).format(activeDeal.deal_value || 0)}
+            </div>
           </div>
         ) : null}
       </DragOverlay>
