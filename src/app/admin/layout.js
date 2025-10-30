@@ -35,10 +35,10 @@ export default function AdminLayout({ children }) {
 
       // Check if user is admin
       const { data: adminData } = await supabase
-        .from('admins')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .single()
+      .from('admins')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
 
       if (!adminData) {
         // Not an admin, redirect to regular dashboard

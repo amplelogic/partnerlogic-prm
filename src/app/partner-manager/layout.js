@@ -36,7 +36,7 @@ export default function PartnerManagerLayout({ children }) {
         .from('partner_managers')
         .select('*')
         .eq('auth_user_id', user.id)
-        .single()
+        .maybeSingle()
 
       if (!managerData) {
         // Not a partner manager, redirect to regular dashboard

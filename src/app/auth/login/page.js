@@ -28,11 +28,43 @@ export default function LoginPage() {
       })
 
       if (error) {
-        setError(error.message)
-      } else {
-        router.push('/dashboard')
-        router.refresh()
-      }
+  setError(error.message)
+} else {
+  // Check user role and redirect accordingly
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (user) {
+    // Check if admin
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+    
+    if (adminData) {
+      router.push('/admin')
+      router.refresh()
+      return
+    }
+
+    // Check if partner manager
+    const { data: managerData } = await supabase
+      .from('partner_managers')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+    
+    if (managerData) {
+      router.push('/partner-manager')
+      router.refresh()
+      return
+    }
+  }
+  
+  // Default to dashboard for regular partners
+  router.push('/dashboard')
+  router.refresh()
+}
     } catch (err) {
       setError('An unexpected error occurred')
     } finally {
@@ -51,12 +83,43 @@ export default function LoginPage() {
         password: 'demo123456',
       })
 
-      if (error) {
-        setError('Demo account not available. Please contact support.')
-      } else {
-        router.push('/dashboard')
-        router.refresh()
-      }
+     if (error) {
+  setError('Demo account not available. Please contact support.')
+} else {
+  // Check user role and redirect accordingly
+  const { data: { user } } = await supabase.auth.getUser()
+  
+  if (user) {
+    // Check if admin
+    const { data: adminData } = await supabase
+      .from('admins')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+    
+    if (adminData) {
+      router.push('/admin')
+      router.refresh()
+      return
+    }
+
+    // Check if partner manager
+    const { data: managerData } = await supabase
+      .from('partner_managers')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .maybeSingle()
+    
+    if (managerData) {
+      router.push('/partner-manager')
+      router.refresh()
+      return
+    }
+  }
+  
+  router.push('/dashboard')
+  router.refresh()
+}
     } catch (err) {
       setError('Demo login failed')
     } finally {

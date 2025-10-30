@@ -218,13 +218,19 @@ export default function SetPasswordPage() {
   }
 }
 
-    setSuccess(true)
-    
-    // Redirect to dashboard after 2 seconds
-    setTimeout(() => {
-      router.push('/dashboard')
-      router.refresh()
-    }, 2000)
+setSuccess(true)
+
+// Redirect based on account type after 2 seconds
+setTimeout(() => {
+  if (currentUser.user_metadata?.account_type === 'admin') {
+    router.push('/admin')
+  } else if (currentUser.user_metadata?.account_type === 'partner_manager') {
+    router.push('/partner-manager')
+  } else {
+    router.push('/dashboard')
+  }
+  router.refresh()
+}, 2000)
 
   } catch (err) {
     console.error('Unexpected error:', err)
