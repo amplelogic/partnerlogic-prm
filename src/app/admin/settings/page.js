@@ -40,7 +40,8 @@ export default function AdminSettingsPage() {
     email_system: true,
     push_deals: true,
     push_support: true,
-    push_partners: false
+    push_partners: false,
+    deal_notification_email: '' // NEW: Email for deal notifications
   })
 
   const [systemSettings, setSystemSettings] = useState({
@@ -88,8 +89,25 @@ export default function AdminSettingsPage() {
           phone: adminData.phone || ''
         })
 
-        // In a real app, you'd load these from a settings table
-        // For now, using default values
+        // Load notification settings from admin_settings table
+        const { data: settingsData } = await supabase
+          .from('admin_settings')
+          .select('*')
+          .eq('admin_id', adminData.id)
+          .single()
+
+        if (settingsData) {
+          setNotificationSettings({
+            email_deals: settingsData.email_deals ?? true,
+            email_support: settingsData.email_support ?? true,
+            email_partners: settingsData.email_partners ?? true,
+            email_system: settingsData.email_system ?? true,
+            push_deals: settingsData.push_deals ?? true,
+            push_support: settingsData.push_support ?? true,
+            push_partners: settingsData.push_partners ?? false,
+            deal_notification_email: settingsData.deal_notification_email || ''
+          })
+        }
       }
     } catch (error) {
       console.error('Error loading settings:', error)
@@ -196,7 +214,60 @@ export default function AdminSettingsPage() {
   const saveNotifications = async () => {
     try {
       setSaving(true)
-      // In a real app, you'd save to an admin_settings table
+      setErrors({})
+
+      // Validate email if provided
+      if (notificationSettings.deal_notification_email && 
+          !/\S+@\S+\.\S+/.test(notificationSettings.deal_notification_email)) {
+        setErrors({ deal_notification_email: 'Please enter a valid email address' })
+        setSaving(false)
+        return
+      }
+
+      // Check if settings record exists
+      const { data: existingSettings } = await supabase
+        .from('admin_settings')
+        .select('id')
+        .eq('admin_id', admin.id)
+        .single()
+
+      if (existingSettings) {
+        // Update existing settings
+        const { error } = await supabase
+          .from('admin_settings')
+          .update({
+            email_deals: notificationSettings.email_deals,
+            email_support: notificationSettings.email_support,
+            email_partners: notificationSettings.email_partners,
+            email_system: notificationSettings.email_system,
+            push_deals: notificationSettings.push_deals,
+            push_support: notificationSettings.push_support,
+            push_partners: notificationSettings.push_partners,
+            deal_notification_email: notificationSettings.deal_notification_email.trim() || null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('admin_id', admin.id)
+
+        if (error) throw error
+      } else {
+        // Create new settings
+        const { error } = await supabase
+          .from('admin_settings')
+          .insert([{
+            admin_id: admin.id,
+            email_deals: notificationSettings.email_deals,
+            email_support: notificationSettings.email_support,
+            email_partners: notificationSettings.email_partners,
+            email_system: notificationSettings.email_system,
+            push_deals: notificationSettings.push_deals,
+            push_support: notificationSettings.push_support,
+            push_partners: notificationSettings.push_partners,
+            deal_notification_email: notificationSettings.deal_notification_email.trim() || null
+          }])
+
+        if (error) throw error
+      }
+
       setSuccess('Notification preferences updated!')
       setTimeout(() => setSuccess(''), 3000)
     } catch (error) {
@@ -551,6 +622,39 @@ export default function AdminSettingsPage() {
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Email Notifications</h3>
                   
+                  {/* NEW: Deal Notification Email Field */}
+                  <div className="mb-8 p-6 bg-blue-50 rounded-lg border border-blue-200">
+                    <div className="flex items-start">
+                      <Mail className="h-5 w-5 text-blue-400 flex-shrink-0 mt-0.5" />
+                      <div className="ml-3 flex-1">
+                        <h4 className="text-sm font-medium text-blue-900 mb-2">Deal Registration Notifications</h4>
+                        <p className="text-sm text-blue-700 mb-4">
+                          Get notified when partners register new deals. Enter an email address to receive instant notifications.
+                        </p>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-700 mb-2">
+                            Notification Email Address
+                          </label>
+                          <input
+                            type="email"
+                            value={notificationSettings.deal_notification_email}
+                            onChange={(e) => handleInputChange('notifications', 'deal_notification_email', e.target.value)}
+                            className={`block w-full max-w-md px-3 py-2 text-black border rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-purple-500 ${
+                              errors.deal_notification_email ? 'border-red-300' : 'border-gray-300'
+                            }`}
+                            placeholder="admin@example.com"
+                          />
+                          {errors.deal_notification_email && (
+                            <p className="mt-1 text-sm text-red-600">{errors.deal_notification_email}</p>
+                          )}
+                          <p className="mt-2 text-xs text-gray-600">
+                            Leave empty to disable deal registration email notifications
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="space-y-4">
                     <div className="flex items-center justify-between">
                       <div>

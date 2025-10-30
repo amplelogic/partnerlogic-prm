@@ -124,7 +124,7 @@ export default function NewDealPage() {
     return Object.keys(newErrors).length === 0
   }
 
-  const handleSubmit = async (e) => {
+const handleSubmit = async (e) => {
   e.preventDefault()
   
   if (!validateForm()) {
@@ -140,8 +140,8 @@ export default function NewDealPage() {
       customer_email: formData.customer_email.trim(),
       customer_company: formData.customer_company.trim(),
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : null,
-      stage: formData.stage,  // Partner sales stage
-      admin_stage: 'urs',     // ✅ NEW: Default admin stage to URS
+      stage: formData.stage,
+      admin_stage: 'urs',
       priority: formData.priority,
       support_type_needed: formData.support_type_needed,
       notes: formData.notes.trim() || null
@@ -164,6 +164,50 @@ export default function NewDealPage() {
           activity_type: 'created',
           description: `Deal registered by ${partner.first_name} ${partner.last_name}`
         }])
+
+      // ✅ NEW: Send email notification to admin
+      try {
+        // Get admin notification email from settings
+        const { data: adminSettings } = await supabase
+          .from('admin_settings')
+          .select('deal_notification_email')
+          .not('deal_notification_email', 'is', null)
+          .limit(1)
+          .single()
+
+        if (adminSettings?.deal_notification_email) {
+          // Call your email service/API endpoint
+          await fetch('/api/send-deal-notification', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              to: adminSettings.deal_notification_email,
+              dealData: {
+                id: data[0].id,
+                customer_name: formData.customer_name,
+                customer_company: formData.customer_company,
+                customer_email: formData.customer_email,
+                deal_value: formData.deal_value,
+                stage: formData.stage,
+                priority: formData.priority,
+                support_type_needed: formData.support_type_needed,
+                notes: formData.notes
+              },
+              partnerData: {
+                name: `${partner.first_name} ${partner.last_name}`,
+                email: partner.email,
+                organization: partner.organization?.name,
+                tier: partner.organization?.tier
+              }
+            })
+          })
+        }
+      } catch (emailError) {
+        // Don't fail the deal creation if email fails
+        console.error('Error sending notification email:', emailError)
+      }
     }
 
     setSuccess(true)
@@ -180,6 +224,7 @@ export default function NewDealPage() {
     setSaving(false)
   }
 }
+
 
   if (loading) {
     return (
