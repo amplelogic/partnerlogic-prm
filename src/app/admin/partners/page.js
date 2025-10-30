@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Search, Filter, Eye, Edit2, Users, Building2,
   Mail, Calendar, ChevronDown, Award, Percent,
-  DollarSign, BarChart3, TrendingUp, Plus
+  DollarSign, BarChart3, TrendingUp, Plus, User
 } from 'lucide-react'
 
 export default function AdminPartnersPage() {
