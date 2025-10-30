@@ -207,7 +207,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-green-400 rounded-full"></div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm">Acme Corp - CRM Implementation</div>
+                            <div className="font-medium text-sm text-gray-700">Acme Corp - CRM Implementation</div>
                             <div className="text-xs text-gray-500">$45,000 • Moved to Proposal</div>
                           </div>
                         </div>
@@ -217,7 +217,7 @@ export default function HomePage() {
                         <div className="flex items-center space-x-3">
                           <div className="w-2 h-2 bg-blue-400 rounded-full"></div>
                           <div className="min-w-0 flex-1">
-                            <div className="font-medium text-sm">TechStart - Analytics Platform</div>
+                            <div className="font-medium text-sm text-gray-700">TechStart - Analytics Platform</div>
                             <div className="text-xs text-gray-500">$28,000 • Support Ticket Resolved</div>
                           </div>
                         </div>
