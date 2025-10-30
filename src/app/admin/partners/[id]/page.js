@@ -37,7 +37,8 @@ export default function PartnerViewPage({ params }) {
         .from('partners')
         .select(`
           *,
-          organization:organizations(*)
+          organization:organizations(*),
+          partner_manager:partner_managers(*)
         `)
         .eq('id', params.id)
         .single()
@@ -301,6 +302,20 @@ export default function PartnerViewPage({ params }) {
                     </p>
                   </div>
                 </div>
+                {partner.partner_manager && (
+                  <div className="flex items-center space-x-3">
+                    <div className="w-10 h-10 bg-indigo-100 rounded-lg flex items-center justify-center">
+                      <User className="h-5 w-5 text-indigo-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600">Partner Manager</p>
+                      <p className="font-medium text-gray-900">
+                        {partner.partner_manager.first_name} {partner.partner_manager.last_name}
+                      </p>
+                      <p className="text-xs text-gray-500">{partner.partner_manager.email}</p>
+                    </div>
+                  </div>
+                )}
               </div>
             </div>
 

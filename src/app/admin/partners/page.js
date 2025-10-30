@@ -52,12 +52,13 @@ export default function AdminPartnersPage() {
       setLoading(true)
       
       const { data: partnersData, error } = await supabase
-        .from('partners')
-        .select(`
-          *,
-          organization:organizations(*)
-        `)
-        .order('created_at', { ascending: false })
+      .from('partners')
+      .select(`
+        *,
+        organization:organizations(*),
+        partner_manager:partner_managers(*)
+      `)
+      .order('created_at', { ascending: false })
 
       if (error) throw error
 
@@ -384,6 +385,12 @@ export default function AdminPartnersPage() {
                           <div className="flex items-center capitalize">
                             {partner.organization?.type?.replace('_', ' ')}
                           </div>
+                          {partner.partner_manager && (
+                            <div className="flex items-center text-indigo-600">
+                              <User className="h-4 w-4 mr-1" />
+                              {partner.partner_manager.first_name} {partner.partner_manager.last_name}
+                            </div>
+                          )}
                         </div>
 
                         <div className="mt-2 flex items-center space-x-6 text-sm text-gray-500">

@@ -1,4 +1,3 @@
-// src/app/admin/layout.js
 'use client'
 
 import { useState, useEffect } from 'react'
@@ -6,24 +5,23 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Users, BarChart3, FileText, Settings, Shield,
-  Menu, X, LogOut, Bell, Search, Home, Building2,
-  User, ChevronDown, BookOpen, Headphones,
-  TrendingUp, Package
+  Users, BarChart3, Settings,
+  Menu, X, LogOut, Bell, Search, Home,
+  User, ChevronDown, Building2
 } from 'lucide-react'
 
-export default function AdminLayout({ children }) {
+export default function PartnerManagerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
   const [profileDropdownOpen, setProfileDropdownOpen] = useState(false)
   const [user, setUser] = useState(null)
-  const [admin, setAdmin] = useState(null)
+  const [partnerManager, setPartnerManager] = useState(null)
   const [loading, setLoading] = useState(true)
   const router = useRouter()
   const pathname = usePathname()
   const supabase = createClient()
 
   useEffect(() => {
-    const checkAdmin = async () => {
+    const checkPartnerManager = async () => {
       const { data: { user } } = await supabase.auth.getUser()
       
       if (!user) {
@@ -33,24 +31,24 @@ export default function AdminLayout({ children }) {
 
       setUser(user)
 
-      // Check if user is admin
-      const { data: adminData } = await supabase
-        .from('admins')
+      // Check if user is partner manager
+      const { data: managerData } = await supabase
+        .from('partner_managers')
         .select('*')
         .eq('auth_user_id', user.id)
         .single()
 
-      if (!adminData) {
-        // Not an admin, redirect to regular dashboard
+      if (!managerData) {
+        // Not a partner manager, redirect to regular dashboard
         router.push('/dashboard')
         return
       }
 
-      setAdmin(adminData)
+      setPartnerManager(managerData)
       setLoading(false)
     }
 
-    checkAdmin()
+    checkPartnerManager()
   }, [router, supabase])
 
   const handleLogout = async () => {
@@ -73,15 +71,10 @@ export default function AdminLayout({ children }) {
   }
 
   const navigation = [
-    { name: 'Dashboard', href: '/admin', icon: Home, current: pathname === '/admin' },
-    { name: 'All Deals', href: '/admin/deals', icon: BarChart3, current: pathname.startsWith('/admin/deals') },
-    { name: 'Partners', href: '/admin/partners', icon: Building2, current: pathname.startsWith('/admin/partners') },
-    { name: 'Admins', href: '/admin/admins', icon: Shield, current: pathname.startsWith('/admin/admins') },
-    { name: 'Partner Managers', href: '/admin/partner-managers', icon: Users, current: pathname.startsWith('/admin/partner-managers') },
-    { name: 'LMS', href: '/admin/lms', icon: BookOpen, current: pathname.startsWith('/admin/lms') },
-    { name: 'Knowledge Base', href: '/admin/knowledge', icon: FileText, current: pathname.startsWith('/admin/knowledge') },
-    { name: 'Products', href: '/admin/products', icon: Package, current: pathname.startsWith('/admin/products') },
-    { name: 'Settings', href: '/admin/settings', icon: Settings, current: pathname === '/admin/settings' },
+    { name: 'Dashboard', href: '/partner-manager', icon: Home, current: pathname === '/partner-manager' },
+    { name: 'My Partners', href: '/partner-manager/partners', icon: Users, current: pathname.startsWith('/partner-manager/partners') },
+    { name: 'All Deals', href: '/partner-manager/deals', icon: BarChart3, current: pathname.startsWith('/partner-manager/deals') },
+    { name: 'Settings', href: '/partner-manager/settings', icon: Settings, current: pathname === '/partner-manager/settings' },
   ]
 
   return (
@@ -96,11 +89,11 @@ export default function AdminLayout({ children }) {
           <div className="fixed inset-y-0 left-0 flex flex-col w-80 max-w-xs bg-white shadow-xl transform transition-transform duration-300 ease-in-out">
             <div className="flex items-center justify-between p-4 border-b border-gray-200">
               <div className="flex items-center space-x-3">
-                <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-500 rounded-lg flex items-center justify-center">
-                  <Shield className="h-5 w-5 text-white" />
+                <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-500 rounded-lg flex items-center justify-center">
+                  <Users className="h-5 w-5 text-white" />
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-gray-900">Admin Panel</div>
+                  <div className="text-lg font-bold text-gray-900">Partner Manager</div>
                   <div className="text-xs text-gray-500">PartnerLogic</div>
                 </div>
               </div>
@@ -121,12 +114,12 @@ export default function AdminLayout({ children }) {
                   onClick={() => setSidebarOpen(false)}
                   className={`group flex items-center px-4 py-3 text-base font-medium rounded-lg transition-all duration-200 ${
                     item.current
-                      ? 'bg-purple-50 text-purple-700 border-l-4 border-purple-500'
+                      ? 'bg-indigo-50 text-indigo-700 border-l-4 border-indigo-500'
                       : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                   }`}
                 >
                   <item.icon className={`mr-4 flex-shrink-0 h-6 w-6 ${
-                    item.current ? 'text-purple-500' : 'text-gray-400 group-hover:text-gray-500'
+                    item.current ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'
                   }`} />
                   {item.name}
                 </Link>
@@ -153,12 +146,12 @@ export default function AdminLayout({ children }) {
       <div className="hidden lg:flex lg:w-64 lg:flex-col lg:fixed lg:inset-y-0">
         <div className="flex-1 flex flex-col min-h-0 bg-white border-r border-gray-200">
           <div className="flex items-center h-16 flex-shrink-0 px-4 bg-white border-b border-gray-200">
-            <Link href="/admin" className="flex items-center space-x-3">
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-500 rounded-lg flex items-center justify-center">
-                <Shield className="h-5 w-5 text-white" />
+            <Link href="/partner-manager" className="flex items-center space-x-3">
+              <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-500 rounded-lg flex items-center justify-center">
+                <Users className="h-5 w-5 text-white" />
               </div>
               <div>
-                <div className="text-lg font-bold text-gray-900">Admin Panel</div>
+                <div className="text-lg font-bold text-gray-900">Partner Manager</div>
                 <div className="text-xs text-gray-500">PartnerLogic</div>
               </div>
             </Link>
@@ -166,14 +159,14 @@ export default function AdminLayout({ children }) {
 
           <div className="px-4 py-4 border-b border-gray-200">
             <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <div className="w-10 h-10 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
                 <User className="h-6 w-6 text-white" />
               </div>
               <div className="flex-1 min-w-0">
                 <p className="text-sm font-medium text-gray-900 truncate">
-                  {admin?.first_name} {admin?.last_name}
+                  {partnerManager?.first_name} {partnerManager?.last_name}
                 </p>
-                <p className="text-xs text-gray-500 truncate">Administrator</p>
+                <p className="text-xs text-gray-500 truncate">Partner Manager</p>
               </div>
             </div>
           </div>
@@ -185,12 +178,12 @@ export default function AdminLayout({ children }) {
                 href={item.href}
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors ${
                   item.current
-                    ? 'bg-purple-50 border-r-2 border-purple-500 text-purple-700'
+                    ? 'bg-indigo-50 border-r-2 border-indigo-500 text-indigo-700'
                     : 'text-gray-700 hover:bg-gray-50 hover:text-gray-900'
                 }`}
               >
                 <item.icon className={`mr-3 flex-shrink-0 h-5 w-5 ${
-                  item.current ? 'text-purple-500' : 'text-gray-400 group-hover:text-gray-500'
+                  item.current ? 'text-indigo-500' : 'text-gray-400 group-hover:text-gray-500'
                 }`} />
                 {item.name}
               </Link>
@@ -222,10 +215,10 @@ export default function AdminLayout({ children }) {
           </button>
           
           <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 bg-gradient-to-r from-purple-600 to-pink-500 rounded-lg flex items-center justify-center">
-              <Shield className="h-5 w-5 text-white" />
+            <div className="w-8 h-8 bg-gradient-to-r from-indigo-600 to-purple-500 rounded-lg flex items-center justify-center">
+              <Users className="h-5 w-5 text-white" />
             </div>
-            <div className="text-lg font-bold text-gray-900">Admin</div>
+            <div className="text-lg font-bold text-gray-900">Partner Manager</div>
           </div>
 
           <div className="relative">
@@ -233,7 +226,7 @@ export default function AdminLayout({ children }) {
               onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
               className="flex items-center space-x-2 p-1 rounded-lg hover:bg-gray-50"
             >
-              <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
                 <User className="h-5 w-5 text-white" />
               </div>
               <ChevronDown className="h-4 w-4 text-gray-400" />
@@ -244,9 +237,9 @@ export default function AdminLayout({ children }) {
                 <div className="py-1">
                   <div className="px-4 py-2 border-b border-gray-100">
                     <p className="text-sm font-medium text-gray-900">
-                      {admin?.first_name} {admin?.last_name}
+                      {partnerManager?.first_name} {partnerManager?.last_name}
                     </p>
-                    <p className="text-xs text-gray-500">Administrator</p>
+                    <p className="text-xs text-gray-500">Partner Manager</p>
                   </div>
                   <button
                     onClick={handleLogout}
@@ -267,22 +260,11 @@ export default function AdminLayout({ children }) {
             <div className="flex justify-between items-center py-4">
               <div className="flex-1 min-w-0">
                 <h1 className="text-2xl font-bold leading-7 text-gray-900">
-                  Admin Dashboard
+                  Partner Manager Dashboard
                 </h1>
               </div>
               
               <div className="ml-4 flex items-center space-x-4">
-                <div className="hidden xl:block relative">
-                  <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                    <Search className="h-5 w-5 text-gray-400" />
-                  </div>
-                  <input
-                    type="text"
-                    placeholder="Search..."
-                    className="block w-80 pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-gray-900"
-                  />
-                </div>
-
                 <button className="p-2 text-gray-400 hover:text-gray-500 rounded-md">
                   <Bell className="h-6 w-6" />
                 </button>
@@ -292,14 +274,14 @@ export default function AdminLayout({ children }) {
                     onClick={() => setProfileDropdownOpen(!profileDropdownOpen)}
                     className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-50"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-r from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gradient-to-r from-indigo-500 to-purple-500 rounded-full flex items-center justify-center">
                       <User className="h-5 w-5 text-white" />
                     </div>
                     <div className="text-left hidden md:block">
                       <p className="text-sm font-medium text-gray-900">
-                        {admin?.first_name} {admin?.last_name}
+                        {partnerManager?.first_name} {partnerManager?.last_name}
                       </p>
-                      <p className="text-xs text-gray-500">Administrator</p>
+                      <p className="text-xs text-gray-500">Partner Manager</p>
                     </div>
                     <ChevronDown className="h-4 w-4 text-gray-400" />
                   </button>
@@ -309,12 +291,12 @@ export default function AdminLayout({ children }) {
                       <div className="py-1">
                         <div className="px-4 py-3 border-b border-gray-100">
                           <p className="text-sm font-medium text-gray-900">
-                            {admin?.first_name} {admin?.last_name}
+                            {partnerManager?.first_name} {partnerManager?.last_name}
                           </p>
-                          <p className="text-xs text-gray-500">{admin?.email}</p>
+                          <p className="text-xs text-gray-500">{partnerManager?.email}</p>
                         </div>
                         <Link
-                          href="/admin/settings"
+                          href="/partner-manager/settings"
                           className="flex items-center px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
                           onClick={() => setProfileDropdownOpen(false)}
                         >

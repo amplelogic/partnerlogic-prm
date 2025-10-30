@@ -25,6 +25,7 @@ export default function EditPartnerPage({ params }) {
     email: '',
     phone: '',
     status: 'active',
+    partner_manager_id: '',
     // Organization Info
     organization_name: '',
     organization_type: 'reseller',
@@ -37,6 +38,8 @@ export default function EditPartnerPage({ params }) {
 
   const router = useRouter()
   const supabase = createClient()
+  const [partnerManagers, setPartnerManagers] = useState([])
+  const [loadingManagers, setLoadingManagers] = useState(false)
 
   const organizationTypes = [
     { value: 'reseller', label: 'Reseller Partner' },
@@ -109,6 +112,7 @@ export default function EditPartnerPage({ params }) {
           email: partnerData.email || '',
           phone: partnerData.phone || '',
           status: partnerData.status || 'active',
+          partner_manager_id: partnerData.partner_manager_id || '',
           organization_name: partnerData.organization?.name || '',
           organization_type: partnerData.organization?.type || 'reseller',
           tier: partnerData.organization?.tier || 'bronze',
@@ -144,6 +148,28 @@ export default function EditPartnerPage({ params }) {
       setLoading(false)
     }
   }
+
+  useEffect(() => {
+  loadPartnerManagers()
+}, [])
+
+const loadPartnerManagers = async () => {
+  try {
+    setLoadingManagers(true)
+    const { data, error } = await supabase
+      .from('partner_managers')
+      .select('*')
+      .eq('status', 'active')
+      .order('first_name', { ascending: true })
+
+    if (error) throw error
+    setPartnerManagers(data || [])
+  } catch (error) {
+    console.error('Error loading partner managers:', error)
+  } finally {
+    setLoadingManagers(false)
+  }
+}
 
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
@@ -219,7 +245,8 @@ export default function EditPartnerPage({ params }) {
         last_name: formData.last_name.trim(),
         email: formData.email.trim(),
         phone: formData.phone.trim() || null,
-        status: formData.status
+        status: formData.status,
+        partner_manager_id: formData.partner_manager_id || null
       }
       
       console.log('Partner Update Payload:', partnerUpdatePayload)
@@ -463,6 +490,28 @@ export default function EditPartnerPage({ params }) {
                       <option key={status.value} value={status.value}>{status.label}</option>
                     ))}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Partner Manager
+                  </label>
+                  <select
+                    name="partner_manager_id"
+                    value={formData.partner_manager_id}
+                    onChange={handleInputChange}
+                    disabled={loadingManagers}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                  >
+                    <option value="">No Partner Manager Assigned</option>
+                    {partnerManagers.map(manager => (
+                      <option key={manager.id} value={manager.id}>
+                        {manager.first_name} {manager.last_name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Assign a partner manager to oversee this partner
+                  </p>
                 </div>
               </div>
             </div>

@@ -1,11 +1,11 @@
 // src/app/admin/partners/new/page.js
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, Building2, Package } from 'lucide-react'
+import { ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, Building2, Package, Users  } from 'lucide-react'
 import ProductMultiSelect from '@/components/ProductMultiSelect'
 
 export default function NewPartnerPage() {
@@ -13,6 +13,8 @@ export default function NewPartnerPage() {
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
   const [selectedProducts, setSelectedProducts] = useState([])
+  const [partnerManagers, setPartnerManagers] = useState([])
+  const [loadingManagers, setLoadingManagers] = useState(false)
   
   const [formData, setFormData] = useState({
     // Partner Info
@@ -20,6 +22,7 @@ export default function NewPartnerPage() {
     last_name: '',
     email: '',
     phone: '',
+    partner_manager_id: '',
     // Organization Info
     organization_name: '',
     organization_type: 'reseller',
@@ -95,7 +98,28 @@ export default function NewPartnerPage() {
     }
 
     setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+      return Object.keys(newErrors).length === 0
+    }
+    useEffect(() => {
+      loadPartnerManagers()
+    }, [])
+
+  const loadPartnerManagers = async () => {
+    try {
+      setLoadingManagers(true)
+      const { data, error } = await supabase
+        .from('partner_managers')
+        .select('*')
+        .eq('status', 'active')
+        .order('first_name', { ascending: true })
+
+      if (error) throw error
+      setPartnerManagers(data || [])
+    } catch (error) {
+      console.error('Error loading partner managers:', error)
+    } finally {
+      setLoadingManagers(false)
+    }
   }
 
   const handleSubmit = async (e) => {
@@ -114,6 +138,7 @@ export default function NewPartnerPage() {
           last_name: formData.last_name.trim(),
           phone: formData.phone.trim() || null,
           account_type: formData.account_type,
+          partner_manager_id: formData.partner_manager_id || null,
           organization: formData.account_type === 'partner' ? {
             name: formData.organization_name.trim(),
             type: formData.organization_type,
@@ -151,7 +176,9 @@ export default function NewPartnerPage() {
               <CheckCircle className="h-8 w-8 text-green-600" />
             </div>
             <h2 className="text-2xl font-bold text-gray-900 mb-2">
-              {formData.account_type === 'admin' ? 'Admin Created!' : 'Partner Created!'}
+              {formData.account_type === 'admin' ? 'Admin Created!' : 
+              formData.account_type === 'partner_manager' ? 'Partner Manager Created!' : 
+              'Partner Created!'}
             </h2>
             <p className="text-gray-600 mb-6">
               An activation email has been sent to {formData.email}. They will receive instructions to set their password and activate their account.
@@ -228,6 +255,23 @@ export default function NewPartnerPage() {
                     </div>
                   </div>
                 </label>
+                <label className={`cursor-pointer border-2 rounded-lg p-4 ${formData.account_type === 'partner_manager' ? 'border-blue-500 bg-blue-50' : 'border-gray-300'}`}>
+                  <input
+                    type="radio"
+                    name="account_type"
+                    value="partner_manager"
+                    checked={formData.account_type === 'partner_manager'}
+                    onChange={handleInputChange}
+                    className="sr-only"
+                  />
+                  <div className="flex items-center space-x-3">
+                    <Users className="h-6 w-6 text-indigo-600" />
+                    <div>
+                      <div className="font-medium text-black">Partner Manager</div>
+                      <div className="text-sm text-gray-600">Manages partner relationships</div>
+                    </div>
+                  </div>
+                </label>
               </div>
             </div>
 
@@ -285,6 +329,37 @@ export default function NewPartnerPage() {
               </div>
             </div>
             
+            {formData.account_type === 'partner' && (
+              <div className="md:col-span-2">
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Partner Manager (Optional)
+                </label>
+                <select
+                  name="partner_manager_id"
+                  value={formData.partner_manager_id}
+                  onChange={handleInputChange}
+                  disabled={loadingManagers}
+                  className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500"
+                >
+                  <option value="">No Partner Manager Assigned</option>
+                  {partnerManagers.map(manager => (
+                    <option key={manager.id} value={manager.id}>
+                      {manager.first_name} {manager.last_name} - {manager.email}
+                    </option>
+                  ))}
+                </select>
+                <p className="mt-1 text-sm text-gray-500">
+                  Assign a partner manager to oversee this partner's relationship
+                </p>
+                {loadingManagers && (
+                  <p className="mt-1 text-sm text-blue-600">Loading partner managers...</p>
+                )}
+              </div>
+            )}
+
+            {/* Organization Information - Only for Partners */}
+            {formData.account_type === 'partner' && (
+              <>
                 {/* NEW: Product Assignment Section */}
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -311,9 +386,6 @@ export default function NewPartnerPage() {
                     )}
                   </div>
                 </div>
-            {/* Organization Information - Only for Partners */}
-            {formData.account_type === 'partner' && (
-              <>
                 <div>
                   <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

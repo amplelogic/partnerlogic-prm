@@ -197,7 +197,26 @@ export default function SetPasswordPage() {
       }
     } else if (currentUser.user_metadata?.account_type === 'admin') {
       console.log('Admin account - no status update needed')
+    }else if (currentUser.user_metadata?.account_type === 'partner_manager') {
+  console.log('Activating partner manager account...')
+  console.log('User ID:', currentUser.id)
+  
+  try {
+    const { data: activateData, error: activateError } = await supabase
+      .rpc('activate_partner_manager_account', {
+        user_id: currentUser.id
+      })
+
+    if (activateError) {
+      console.error('Error activating partner manager:', activateError)
+      console.log('Continuing despite activation error - admin can manually activate')
+    } else {
+      console.log('Partner manager account activated successfully')
     }
+  } catch (activateErr) {
+    console.error('Unexpected error activating partner manager:', activateErr)
+  }
+}
 
     setSuccess(true)
     
