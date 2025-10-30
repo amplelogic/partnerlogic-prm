@@ -9,6 +9,7 @@ import {
   Plus, ArrowRight, AlertCircle, CheckCircle, 
   Activity, Calendar, FileText, Star
 } from 'lucide-react'
+import TierProgress from '@/components/TierProgress'
 
 export default function DashboardPage() {
   const [partner, setPartner] = useState(null)
@@ -18,7 +19,8 @@ export default function DashboardPage() {
     totalDeals: 0,
     pipelineValue: 0,
     activeTickets: 0,
-    conversionRate: 0
+    conversionRate: 0,
+    totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
   const supabase = createClient()
@@ -61,32 +63,38 @@ export default function DashboardPage() {
             .limit(5)
 
           // Calculate stats
-          const { data: allDeals } = await supabase
-            .from('deals')
-            .select('deal_value, stage')
-            .eq('partner_id', partnerData.id)
+          // Calculate stats
+const { data: allDeals } = await supabase
+  .from('deals')
+  .select('deal_value, stage')
+  .eq('partner_id', partnerData.id)
 
-          const { data: activeTicketsData } = await supabase
-            .from('support_tickets')
-            .select('id')
-            .eq('partner_id', partnerData.id)
-            .in('status', ['open', 'in_progress'])
+const { data: activeTicketsData } = await supabase
+  .from('support_tickets')
+  .select('id')
+  .eq('partner_id', partnerData.id)
+  .in('status', ['open', 'in_progress'])
 
-          if (dealsData) setDeals(dealsData)
-          if (ticketsData) setTickets(ticketsData)
+if (dealsData) setDeals(dealsData)
+if (ticketsData) setTickets(ticketsData)
 
-          // Calculate statistics
-          const totalDeals = allDeals?.length || 0
-          const pipelineValue = allDeals?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0
-          const closedWonDeals = allDeals?.filter(deal => deal.stage === 'closed_won').length || 0
-          const conversionRate = totalDeals > 0 ? Math.round((closedWonDeals / totalDeals) * 100) : 0
+// Calculate statistics
+const totalDeals = allDeals?.length || 0
+const pipelineValue = allDeals?.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) || 0
 
-          setStats({
-            totalDeals,
-            pipelineValue,
-            activeTickets: activeTicketsData?.length || 0,
-            conversionRate
-          })
+// ✅ Fixed: Keep array for reduce operation
+const closedWonDealsArray = allDeals?.filter(deal => deal.stage === 'closed_won') || []
+const closedWonCount = closedWonDealsArray.length
+const conversionRate = totalDeals > 0 ? Math.round((closedWonCount / totalDeals) * 100) : 0
+const totalRevenue = closedWonDealsArray.reduce((sum, deal) => sum + (deal.deal_value || 0), 0)
+
+setStats({
+  totalDeals,
+  pipelineValue,
+  activeTickets: activeTicketsData?.length || 0,
+  conversionRate,
+  totalRevenue
+})
         }
 
       } catch (error) {
@@ -325,6 +333,14 @@ export default function DashboardPage() {
               )}
             </div>
           </div>
+        </div>
+        
+        {/* Tier Progress - NEW */}
+        <div className="mb-8">
+          <TierProgress 
+            currentTier={partner?.organization?.tier || 'bronze'} 
+            totalRevenue={stats.totalRevenue}
+          />
         </div>
 
         {/* Quick Actions */}
