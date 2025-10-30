@@ -140,7 +140,7 @@ export default function ProductMultiSelect({ selectedProducts = [], onChange, di
                   >
                     <div className="flex items-center space-x-3 flex-1 min-w-0">
                       {/* Product Icon/Image */}
-                      <div className="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-500 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-8 h-8 rounded flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {product.image_url ? (
                           <img 
                             src={product.image_url} 

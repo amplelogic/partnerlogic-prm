@@ -284,7 +284,33 @@ export default function NewPartnerPage() {
                 </div>
               </div>
             </div>
-
+            
+                {/* NEW: Product Assignment Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <Package className="h-5 w-5 mr-2 text-gray-400" />
+                    Product Assignment
+                  </h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assign Products
+                    </label>
+                    <ProductMultiSelect
+                      selectedProducts={selectedProducts}
+                      onChange={setSelectedProducts}
+                    />
+                    <p className="mt-2 text-sm text-gray-500">
+                      Select the products this partner will be authorized to sell. You can modify this later.
+                    </p>
+                    {selectedProducts.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 font-medium">
+                          {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
             {/* Organization Information - Only for Partners */}
             {formData.account_type === 'partner' && (
               <>
@@ -385,33 +411,6 @@ export default function NewPartnerPage() {
                         />
                         <p className="mt-1 text-sm text-gray-500">
                           Annual marketing development fund allocation for this partner
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </div>
-
-                {/* NEW: Product Assignment Section */}
-                <div>
-                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                    <Package className="h-5 w-5 mr-2 text-gray-400" />
-                    Product Assignment
-                  </h3>
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">
-                      Assign Products
-                    </label>
-                    <ProductMultiSelect
-                      selectedProducts={selectedProducts}
-                      onChange={setSelectedProducts}
-                    />
-                    <p className="mt-2 text-sm text-gray-500">
-                      Select the products this partner will be authorized to sell. You can modify this later.
-                    </p>
-                    {selectedProducts.length > 0 && (
-                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
-                        <p className="text-sm text-blue-800 font-medium">
-                          {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected
                         </p>
                       </div>
                     )}

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   BarChart3, TrendingUp, DollarSign, Users, Clock, 
   Plus, ArrowRight, AlertCircle, CheckCircle, 
-  Activity, Calendar, FileText, Star
+  Activity, Calendar, FileText, Star, Package, ExternalLink
 } from 'lucide-react'
 import TierProgress from '@/components/TierProgress'
 
@@ -23,6 +23,7 @@ export default function DashboardPage() {
     totalRevenue: 0
   })
   const [loading, setLoading] = useState(true)
+  const [assignedProducts, setAssignedProducts] = useState([])
   const supabase = createClient()
 
   useEffect(() => {
@@ -96,6 +97,31 @@ setStats({
   totalRevenue
 })
         }
+        // Get assigned products
+if (partnerData) {
+  const { data: partnerProductsData } = await supabase
+    .from('partner_products')
+    .select(`
+      product_id,
+      products (
+        id,
+        name,
+        short_name,
+        description,
+        image_url,
+        is_active
+      )
+    `)
+    .eq('partner_id', partnerData.id)
+
+  // Extract just the products from the join
+  const products = partnerProductsData
+    ?.map(pp => pp.products)
+    .filter(p => p && p.is_active) || []
+  
+  setAssignedProducts(products)
+  console.log('Assigned products:', products)
+}
 
       } catch (error) {
         console.error('Error loading dashboard data:', error)
@@ -390,7 +416,139 @@ setStats({
             </div>
           </Link>
         </div>
+        {/* Assigned Products Section - NEW */}
+<div className="mb-8">
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+    <div className="p-6 border-b border-gray-200">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-gradient-to-r from-purple-500 to-pink-500 rounded-xl flex items-center justify-center">
+            <Package className="h-5 w-5 text-white" />
+          </div>
+          <div>
+            <h2 className="text-lg font-semibold text-gray-900">Your Assigned Products</h2>
+            <p className="text-sm text-gray-600">Products you're authorized to sell</p>
+          </div>
+        </div>
+        <span className="inline-flex items-center px-3 py-1 rounded-full text-sm font-medium bg-purple-100 text-purple-800">
+          {assignedProducts.length} Products
+        </span>
+      </div>
+    </div>
 
+    <div className="p-6">
+      {assignedProducts.length === 0 ? (
+        <div className="text-center py-12">
+          <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+            <Package className="h-8 w-8 text-gray-400" />
+          </div>
+          <h3 className="text-lg font-medium text-gray-900 mb-2">No Products Assigned Yet</h3>
+          <p className="text-gray-600 mb-4">
+            Contact your account manager to get products assigned to your partnership.
+          </p>
+          <a 
+            href="mailto:support@amplelogic.com"
+            className="inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+          >
+            Contact Support
+          </a>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {assignedProducts.map((product) => (
+            <div
+              key={product.id}
+              className="group bg-white border border-gray-200 rounded-xl p-6 hover:shadow-lg hover:border-purple-300 transition-all duration-200"
+            >
+              {/* Product Icon/Image */}
+              <div className="mb-4">
+                <div className="w-16 h-16 rounded-xl flex items-center justify-center overflow-hidden">
+                  {product.image_url ? (
+                    <img 
+                      src={product.image_url} 
+                      alt={product.name}
+                      className="w-full h-full object-cover"
+                      onError={(e) => {
+                        e.target.style.display = 'none'
+                        e.target.parentElement.innerHTML = `<div class="text-white font-bold text-lg">${product.short_name}</div>`
+                      }}
+                    />
+                  ) : (
+                    <div className="text-white font-bold text-xl">
+                      {product.short_name}
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* Product Info */}
+              <div className="mb-4">
+                <h3 className="font-semibold text-gray-900 mb-1 text-lg group-hover:text-purple-600 transition-colors">
+                  {product.name}
+                </h3>
+                <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  {product.short_name}
+                </span>
+              </div>
+
+              {product.description && (
+                <p className="text-sm text-gray-600 mb-4 line-clamp-3">
+                  {product.description}
+                </p>
+              )}
+
+              {/* Actions */}
+              <div className="pt-4 border-t border-gray-200">
+                <Link
+                  href={`/dashboard/deals?product=${product.id}`}
+                  className="inline-flex items-center text-sm font-medium text-purple-600 hover:text-purple-700 group-hover:underline"
+                >
+                  <span>Register Deal</span>
+                  <ArrowRight className="h-4 w-4 ml-1 group-hover:translate-x-1 transition-transform" />
+                </Link>
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+
+    {/* Quick Tips */}
+    {assignedProducts.length > 0 && (
+      <div className="px-6 pb-6">
+        <div className="bg-gradient-to-r from-purple-50 to-pink-50 rounded-xl p-4 border border-purple-200">
+          <div className="flex items-start space-x-3">
+            <div className="w-8 h-8 bg-purple-100 rounded-full flex items-center justify-center flex-shrink-0">
+              <CheckCircle className="h-5 w-5 text-purple-600" />
+            </div>
+            <div className="flex-1">
+              <h4 className="font-medium text-purple-900 mb-1">Ready to Start Selling?</h4>
+              <p className="text-sm text-purple-700 mb-3">
+                You can now register deals for these products and start earning commissions. Need help getting started?
+              </p>
+              <div className="flex flex-wrap gap-3">
+                <Link
+                  href="/dashboard/knowledge"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-white text-purple-700 rounded-lg hover:bg-purple-100 transition-colors border border-purple-200"
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  View Product Docs
+                </Link>
+                <Link
+                  href="/dashboard/learning"
+                  className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-white text-purple-700 rounded-lg hover:bg-purple-100 transition-colors border border-purple-200"
+                >
+                  <FileText className="h-3 w-3 mr-1" />
+                  Take Training
+                </Link>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
+  </div>
+</div>
         {/* Partner Performance */}
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
           <div className="flex items-center justify-between mb-6">

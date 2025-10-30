@@ -7,15 +7,17 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, 
-  Phone, Building2, Shield
+  Phone, Building2, Shield, Package
 } from 'lucide-react'
+import ProductMultiSelect from '@/components/ProductMultiSelect'
+
 
 export default function EditPartnerPage({ params }) {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
-  
+  const [selectedProducts, setSelectedProducts] = useState([])
   const [formData, setFormData] = useState({
     // Partner Info
     first_name: '',
@@ -115,6 +117,25 @@ export default function EditPartnerPage({ params }) {
           mdf_enabled: partnerData.organization?.mdf_enabled ?? true,
           organization_id: partnerData.organization_id
         })
+
+        // Fetch assigned products
+        const { data: assignedProductsData } = await supabase
+          .from('partner_products')
+          .select(`
+            product_id,
+            products (
+              id,
+              name,
+              short_name,
+              description,
+              image_url
+            )
+          `)
+          .eq('partner_id', params.id)
+
+        const products = assignedProductsData?.map(pp => pp.products).filter(Boolean) || []
+        setSelectedProducts(products)
+        console.log('Loaded assigned products:', products)
       }
     } catch (error) {
       console.error('Error loading partner:', error)
@@ -243,6 +264,43 @@ export default function EditPartnerPage({ params }) {
 
       console.log('Organization updated successfully:', orgUpdateData)
       console.log('=== UPDATE COMPLETED ===')
+
+
+      // Update product assignments
+      console.log('Updating product assignments...')
+      console.log('Selected products:', selectedProducts)
+
+      // Delete existing assignments
+      const { error: deleteError } = await supabase
+        .from('partner_products')
+        .delete()
+        .eq('partner_id', params.id)
+
+      if (deleteError) {
+        console.error('Error deleting old product assignments:', deleteError)
+        // Don't fail the whole operation, just log it
+      }
+
+      // Insert new assignments
+      if (selectedProducts.length > 0) {
+        const productAssignments = selectedProducts.map(product => ({
+          partner_id: params.id,
+          product_id: product.id
+        }))
+
+        const { error: insertError } = await supabase
+          .from('partner_products')
+          .insert(productAssignments)
+
+        if (insertError) {
+          console.error('Error inserting product assignments:', insertError)
+          throw new Error(`Failed to update product assignments: ${insertError.message}`)
+        }
+
+        console.log('Product assignments updated successfully')
+      } else {
+        console.log('No products selected, all assignments removed')
+      }
 
       // Verify the update by fetching fresh data
       const { data: verifyData } = await supabase
@@ -408,7 +466,39 @@ export default function EditPartnerPage({ params }) {
                 </div>
               </div>
             </div>
-
+            {/* Product Assignment Section - NEW */}
+            <div>
+              <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                <Package className="h-5 w-5 mr-2 text-gray-400" />
+                Product Assignment
+              </h3>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Assign Products
+                </label>
+                <ProductMultiSelect
+                  selectedProducts={selectedProducts}
+                  onChange={setSelectedProducts}
+                />
+                <p className="mt-2 text-sm text-gray-500">
+                  Select the products this partner is authorized to sell
+                </p>
+                {selectedProducts.length > 0 && (
+                  <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                    <p className="text-sm text-blue-800 font-medium">
+                      {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} assigned
+                    </p>
+                    <div className="mt-2 flex flex-wrap gap-2">
+                      {selectedProducts.map(product => (
+                        <span key={product.id} className="inline-flex items-center px-2 py-1 rounded-md text-xs font-medium bg-white text-blue-700 border border-blue-300">
+                          {product.short_name}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
             {/* Organization Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">

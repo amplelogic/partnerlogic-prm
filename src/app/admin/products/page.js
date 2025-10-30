@@ -82,32 +82,37 @@ export default function AdminProductsPage() {
   }
 
   const handleOpenModal = (product = null) => {
-    console.log('handleOpenModal called with:', product)
-    
-    if (product) {
-      setEditingProduct(product)
-      setFormData({
-        name: product.name,
-        short_name: product.short_name,
-        description: product.description || '',
-        image_url: product.image_url || '',
-        is_active: product.is_active
-      })
-    } else {
-      setEditingProduct(null)
-      setFormData({
-        name: '',
-        short_name: '',
-        description: '',
-        image_url: '',
-        is_active: true
-      })
-    }
-    
-    console.log('Setting showModal to true')
-    setShowModal(true)
-    setError('')
+  console.log('=== OPENING MODAL ===')
+  console.log('Product:', product)
+  
+  if (product) {
+    setEditingProduct(product)
+    setFormData({
+      name: product.name,
+      short_name: product.short_name,
+      description: product.description || '',
+      image_url: product.image_url || '',
+      is_active: product.is_active
+    })
+  } else {
+    setEditingProduct(null)
+    setFormData({
+      name: '',
+      short_name: '',
+      description: '',
+      image_url: '',
+      is_active: true
+    })
   }
+  
+  setError('')
+  
+  // Force a small delay to ensure state is set
+  setTimeout(() => {
+    console.log('Setting showModal to TRUE')
+    setShowModal(true)
+  }, 0)
+}
 
   const handleCloseModal = () => {
     console.log('Closing modal')
@@ -346,7 +351,7 @@ export default function AdminProductsPage() {
                   <div className="flex items-center justify-between">
                     <div className="flex items-center space-x-4 flex-1">
                       {/* Product Image */}
-                      <div className="w-16 h-16 bg-gradient-to-r from-blue-500 to-purple-500 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
+                      <div className="w-16 h-16 rounded-lg flex items-center justify-center flex-shrink-0 overflow-hidden">
                         {product.image_url ? (
                           <img 
                             src={product.image_url} 
@@ -428,129 +433,130 @@ export default function AdminProductsPage() {
       </div>
 
       {/* Modal - Fixed z-index and positioning */}
-      {showModal && (
-        <div className="fixed inset-0 z-[9999] overflow-y-auto" aria-labelledby="modal-title" role="dialog" aria-modal="true">
-          <div className="flex items-end justify-center min-h-screen pt-4 px-4 pb-20 text-center sm:block sm:p-0">
-            {/* Background overlay */}
-            <div 
-              className="fixed inset-0 bg-gray-500 bg-opacity-75 transition-opacity" 
-              aria-hidden="true"
-              onClick={handleCloseModal}
-            ></div>
-
-            {/* Center modal */}
-            <span className="hidden sm:inline-block sm:align-middle sm:h-screen" aria-hidden="true">&#8203;</span>
-
-            {/* Modal panel */}
-            <div className="inline-block align-bottom bg-white rounded-lg text-left overflow-hidden shadow-xl transform transition-all sm:my-8 sm:align-middle sm:max-w-lg sm:w-full">
-              <form onSubmit={handleSubmit}>
-                <div className="bg-white px-4 pt-5 pb-4 sm:p-6 sm:pb-4">
-                  <div className="mb-4">
-                    <h3 className="text-lg font-medium text-gray-900 mb-4">
-                      {editingProduct ? 'Edit Product' : 'Add New Product'}
-                    </h3>
-
-                    {error && (
-                      <div className="mb-4 bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
-                        {error}
-                      </div>
-                    )}
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Product Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.name}
-                          onChange={(e) => setFormData({ ...formData, name: e.target.value })}
-                          className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="e.g., Customer Relationship Management"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Short Name *
-                        </label>
-                        <input
-                          type="text"
-                          value={formData.short_name}
-                          onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
-                          className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="e.g., CRM"
-                          required
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Description
-                        </label>
-                        <textarea
-                          value={formData.description}
-                          onChange={(e) => setFormData({ ...formData, description: e.target.value })}
-                          rows={3}
-                          className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="Brief description of the product"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-2">
-                          Image URL
-                        </label>
-                        <input
-                          type="url"
-                          value={formData.image_url}
-                          onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
-                          className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                          placeholder="https://example.com/image.png"
-                        />
-                        <p className="mt-1 text-sm text-gray-500">
-                          Optional: URL to product image or logo
-                        </p>
-                      </div>
-
-                      <div className="flex items-center">
-                        <input
-                          type="checkbox"
-                          id="is_active"
-                          checked={formData.is_active}
-                          onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
-                        />
-                        <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
-                          Active (available for partner assignment)
-                        </label>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                <div className="bg-gray-50 px-4 py-3 sm:px-6 sm:flex sm:flex-row-reverse">
-                  <button
-                    type="submit"
-                    disabled={saving}
-                    className="w-full inline-flex justify-center rounded-md border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-base font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:ml-3 sm:w-auto sm:text-sm disabled:opacity-50"
-                  >
-                    {saving ? 'Saving...' : (editingProduct ? 'Update Product' : 'Create Product')}
-                  </button>
-                  <button
-                    type="button"
-                    onClick={handleCloseModal}
-                    className="mt-3 w-full inline-flex justify-center rounded-md border border-gray-300 shadow-sm px-4 py-2 bg-white text-base font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 sm:mt-0 sm:w-auto sm:text-sm"
-                  >
-                    Cancel
-                  </button>
-                </div>
-              </form>
+{/* Modal - Fixed visibility and positioning */}
+{showModal && (
+  <>
+    {/* Background overlay */}
+    <div 
+      className="fixed inset-0 bg-white/20 backdrop-blur-lg border border-white/30 z-[100000]"
+      onClick={handleCloseModal}
+    />
+    
+    {/* Modal container */}
+    <div className="fixed inset-0 z-[100001] overflow-y-auto">
+      <div className="flex min-h-full items-center justify-center p-4">
+        {/* Modal content */}
+        <div className="relative bg-white rounded-lg shadow-xl w-full max-w-lg">
+          <form onSubmit={handleSubmit}>
+            {/* Header */}
+            <div className="bg-white px-6 pt-6 pb-4 rounded-t-lg">
+              <h3 className="text-lg font-semibold text-gray-900">
+                {editingProduct ? 'Edit Product' : 'Add New Product'}
+              </h3>
             </div>
-          </div>
+
+            {/* Body */}
+            <div className="px-6 pb-4 space-y-4">
+              {error && (
+                <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
+                  {error}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Product Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.name}
+                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., Customer Relationship Management"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Short Name *
+                </label>
+                <input
+                  type="text"
+                  value={formData.short_name}
+                  onChange={(e) => setFormData({ ...formData, short_name: e.target.value })}
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="e.g., CRM"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Description
+                </label>
+                <textarea
+                  value={formData.description}
+                  onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+                  rows={3}
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Brief description of the product"
+                />
+              </div>
+
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Image URL
+                </label>
+                <input
+                  type="url"
+                  value={formData.image_url}
+                  onChange={(e) => setFormData({ ...formData, image_url: e.target.value })}
+                  className="block w-full px-3 py-2 text-gray-900 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="https://example.com/image.png"
+                />
+                <p className="mt-1 text-sm text-gray-500">
+                  Optional: URL to product image or logo
+                </p>
+              </div>
+
+              <div className="flex items-center">
+                <input
+                  type="checkbox"
+                  id="is_active"
+                  checked={formData.is_active}
+                  onChange={(e) => setFormData({ ...formData, is_active: e.target.checked })}
+                  className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                />
+                <label htmlFor="is_active" className="ml-2 block text-sm text-gray-900">
+                  Active (available for partner assignment)
+                </label>
+              </div>
+            </div>
+
+            {/* Footer */}
+            <div className="bg-gray-50 px-6 py-4 rounded-b-lg flex flex-row-reverse gap-3">
+              <button
+                type="submit"
+                disabled={saving}
+                className="inline-flex justify-center rounded-lg border border-transparent shadow-sm px-4 py-2 bg-blue-600 text-sm font-medium text-white hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {saving ? 'Saving...' : (editingProduct ? 'Update Product' : 'Create Product')}
+              </button>
+              <button
+                type="button"
+                onClick={handleCloseModal}
+                className="inline-flex justify-center rounded-lg border border-gray-300 shadow-sm px-4 py-2 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              >
+                Cancel
+              </button>
+            </div>
+          </form>
         </div>
-      )}
+      </div>
+    </div>
+  </>
+)}
     </div>
   )
 }
