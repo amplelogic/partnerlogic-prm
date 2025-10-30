@@ -9,7 +9,7 @@ import {
   Users, BarChart3, FileText, Settings, Shield,
   Menu, X, LogOut, Bell, Search, Home, Building2,
   User, ChevronDown, BookOpen, Headphones,
-  TrendingUp
+  TrendingUp, Package
 } from 'lucide-react'
 
 export default function AdminLayout({ children }) {
@@ -79,6 +79,7 @@ export default function AdminLayout({ children }) {
     { name: 'Admins', href: '/admin/admins', icon: Shield, current: pathname.startsWith('/admin/admins') },
     { name: 'LMS', href: '/admin/lms', icon: BookOpen, current: pathname.startsWith('/admin/lms') },
     { name: 'Knowledge Base', href: '/admin/knowledge', icon: FileText, current: pathname.startsWith('/admin/knowledge') },
+    { name: 'Products', href: '/admin/products', icon: Package, current: pathname.startsWith('/admin/products') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: pathname === '/admin/settings' },
   ]
 

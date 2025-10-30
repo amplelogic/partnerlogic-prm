@@ -1,15 +1,18 @@
+// src/app/admin/partners/new/page.js
 'use client'
 
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, Building2 } from 'lucide-react'
+import { ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, Building2, Package } from 'lucide-react'
+import ProductMultiSelect from '@/components/ProductMultiSelect'
 
 export default function NewPartnerPage() {
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
+  const [selectedProducts, setSelectedProducts] = useState([])
   
   const [formData, setFormData] = useState({
     // Partner Info
@@ -23,9 +26,9 @@ export default function NewPartnerPage() {
     tier: 'bronze',
     discount_percentage: 0,
     mdf_allocation: 0,
-    mdf_enabled: false, // NEW: MDF enabled by default
+    mdf_enabled: false,
     // Account Type
-    account_type: 'partner' // 'partner' or 'admin'
+    account_type: 'partner'
   })
 
   const router = useRouter()
@@ -48,18 +51,15 @@ export default function NewPartnerPage() {
   const handleInputChange = (e) => {
     const { name, value, type, checked } = e.target
     
-    // NEW: Handle checkbox for mdf_enabled
     if (name === 'mdf_enabled') {
       setFormData(prev => ({
         ...prev,
         mdf_enabled: checked,
-        // Reset MDF allocation to 0 if disabled
         mdf_allocation: checked ? (tiers.find(t => t.value === prev.tier)?.mdf || 0) : 0
       }))
     } else {
       setFormData(prev => ({ ...prev, [name]: value }))
       
-      // Auto-fill discount and MDF based on tier (only if MDF is enabled)
       if (name === 'tier') {
         const tierInfo = tiers.find(t => t.value === value)
         if (tierInfo) {
@@ -120,8 +120,10 @@ export default function NewPartnerPage() {
             tier: formData.tier,
             discount_percentage: parseInt(formData.discount_percentage),
             mdf_allocation: formData.mdf_enabled ? parseInt(formData.mdf_allocation) : 0,
-            mdf_enabled: formData.mdf_enabled // NEW: Pass MDF enabled flag
-          } : null
+            mdf_enabled: formData.mdf_enabled
+          } : null,
+          // NEW: Send selected product IDs
+          product_ids: selectedProducts.map(p => p.id)
         }
       })
 
@@ -285,108 +287,137 @@ export default function NewPartnerPage() {
 
             {/* Organization Information - Only for Partners */}
             {formData.account_type === 'partner' && (
-              <div>
-                <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                  <div className="md:col-span-2">
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Organization Name *</label>
-                    <input
-                      type="text"
-                      name="organization_name"
-                      value={formData.organization_name}
-                      onChange={handleInputChange}
-                      className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.organization_name ? 'border-red-300' : 'border-gray-300'}`}
-                    />
-                    {errors.organization_name && <p className="mt-1 text-sm text-red-600">{errors.organization_name}</p>}
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Partner Type</label>
-                    <select
-                      name="organization_type"
-                      value={formData.organization_type}
-                      onChange={handleInputChange}
-                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
-                    >
-                      {organizationTypes.map(type => (
-                        <option key={type.value} value={type.value}>{type.label}</option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Partner Tier</label>
-                    <select
-                      name="tier"
-                      value={formData.tier}
-                      onChange={handleInputChange}
-                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
-                    >
-                      {tiers.map(tier => (
-                        <option key={tier.value} value={tier.value}>
-                          {tier.label} - {tier.discount}% discount{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">Discount %</label>
-                    <input
-                      type="number"
-                      name="discount_percentage"
-                      value={formData.discount_percentage}
-                      onChange={handleInputChange}
-                      min="0"
-                      max="100"
-                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
-                    />
-                  </div>
-
-                  {/* NEW: MDF Enabled Toggle */}
-                  <div className="md:col-span-2">
-                    <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
-                      <div className="flex-1">
-                        <label htmlFor="mdf_enabled" className="block text-sm font-medium text-gray-900 mb-1">
-                          Enable MDF (Marketing Development Fund)
-                        </label>
-                        <p className="text-sm text-gray-600">
-                          Allow this partner to request and manage marketing development funds
-                        </p>
-                      </div>
-                      <label className="relative inline-flex items-center cursor-pointer ml-4">
-                        <input
-                          type="checkbox"
-                          id="mdf_enabled"
-                          name="mdf_enabled"
-                          checked={formData.mdf_enabled}
-                          onChange={handleInputChange}
-                          className="sr-only peer"
-                        />
-                        <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
-                      </label>
-                    </div>
-                  </div>
-
-                  {/* NEW: Conditionally show MDF Allocation field */}
-                  {formData.mdf_enabled && (
+              <>
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4">Organization Details</h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div className="md:col-span-2">
-                      <label className="block text-sm font-medium text-gray-700 mb-2">MDF Allocation ($)</label>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Organization Name *</label>
+                      <input
+                        type="text"
+                        name="organization_name"
+                        value={formData.organization_name}
+                        onChange={handleInputChange}
+                        className={`block w-full px-3 py-2 text-black border rounded-lg ${errors.organization_name ? 'border-red-300' : 'border-gray-300'}`}
+                      />
+                      {errors.organization_name && <p className="mt-1 text-sm text-red-600">{errors.organization_name}</p>}
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Partner Type</label>
+                      <select
+                        name="organization_type"
+                        value={formData.organization_type}
+                        onChange={handleInputChange}
+                        className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                      >
+                        {organizationTypes.map(type => (
+                          <option key={type.value} value={type.value}>{type.label}</option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Partner Tier</label>
+                      <select
+                        name="tier"
+                        value={formData.tier}
+                        onChange={handleInputChange}
+                        className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                      >
+                        {tiers.map(tier => (
+                          <option key={tier.value} value={tier.value}>
+                            {tier.label} - {tier.discount}% discount{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">Discount %</label>
                       <input
                         type="number"
-                        name="mdf_allocation"
-                        value={formData.mdf_allocation}
+                        name="discount_percentage"
+                        value={formData.discount_percentage}
                         onChange={handleInputChange}
                         min="0"
+                        max="100"
                         className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
                       />
-                      <p className="mt-1 text-sm text-gray-500">
-                        Annual marketing development fund allocation for this partner
-                      </p>
                     </div>
-                  )}
+
+                    {/* MDF Enabled Toggle */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-1">
+                          <label htmlFor="mdf_enabled" className="block text-sm font-medium text-gray-900 mb-1">
+                            Enable MDF (Marketing Development Fund)
+                          </label>
+                          <p className="text-sm text-gray-600">
+                            Allow this partner to request and manage marketing development funds
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer ml-4">
+                          <input
+                            type="checkbox"
+                            id="mdf_enabled"
+                            name="mdf_enabled"
+                            checked={formData.mdf_enabled}
+                            onChange={handleInputChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Conditionally show MDF Allocation field */}
+                    {formData.mdf_enabled && (
+                      <div className="md:col-span-2">
+                        <label className="block text-sm font-medium text-gray-700 mb-2">MDF Allocation ($)</label>
+                        <input
+                          type="number"
+                          name="mdf_allocation"
+                          value={formData.mdf_allocation}
+                          onChange={handleInputChange}
+                          min="0"
+                          className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
+                        />
+                        <p className="mt-1 text-sm text-gray-500">
+                          Annual marketing development fund allocation for this partner
+                        </p>
+                      </div>
+                    )}
+                  </div>
                 </div>
-              </div>
+
+                {/* NEW: Product Assignment Section */}
+                <div>
+                  <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
+                    <Package className="h-5 w-5 mr-2 text-gray-400" />
+                    Product Assignment
+                  </h3>
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">
+                      Assign Products
+                    </label>
+                    <ProductMultiSelect
+                      selectedProducts={selectedProducts}
+                      onChange={setSelectedProducts}
+                    />
+                    <p className="mt-2 text-sm text-gray-500">
+                      Select the products this partner will be authorized to sell. You can modify this later.
+                    </p>
+                    {selectedProducts.length > 0 && (
+                      <div className="mt-3 p-3 bg-blue-50 rounded-lg border border-blue-200">
+                        <p className="text-sm text-blue-800 font-medium">
+                          {selectedProducts.length} product{selectedProducts.length !== 1 ? 's' : ''} selected
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </div>
+              </>
             )}
           </div>
 
