@@ -166,8 +166,8 @@ const handleSubmit = async (e) => {
         }])
 
       // ✅ NEW: Send email notification to admin
-      try {
-  // Get admin notification email from settings
+      // Replace the email sending block (around line 289) with:
+try {
   const { data: adminSettings } = await supabase
     .from('admin_settings')
     .select('deal_notification_email')
@@ -176,9 +176,8 @@ const handleSubmit = async (e) => {
     .single()
 
   if (adminSettings?.deal_notification_email) {
-    console.log('Attempting to send email to:', adminSettings.deal_notification_email)
+    console.log('📧 Sending email to:', adminSettings.deal_notification_email)
     
-    // Call Supabase Edge Function instead of API route
     const { data: emailData, error: emailError } = await supabase.functions.invoke('send-deal-notification', {
       body: {
         dealData: {
@@ -202,16 +201,15 @@ const handleSubmit = async (e) => {
     })
 
     if (emailError) {
-      console.error('Email sending error:', emailError)
+      console.error('❌ Email error:', emailError)
+      // Show error to user (optional)
+      alert('Deal created but email notification failed: ' + emailError.message)
     } else {
-      console.log('Email sent successfully:', emailData)
+      console.log('✅ Email sent:', emailData)
     }
-  } else {
-    console.log('No notification email configured in admin settings')
   }
 } catch (emailError) {
-  // Don't fail the deal creation if email fails
-  console.error('Error sending notification email:', emailError)
+  console.error('❌ Email exception:', emailError)
 }
     }
 
