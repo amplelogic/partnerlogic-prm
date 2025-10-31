@@ -179,34 +179,34 @@ try {
     console.log('📧 Sending email to:', adminSettings.deal_notification_email)
     
     const { data: emailData, error: emailError } = await supabase.functions.invoke('send-deal-notification', {
-      body: {
-        dealData: {
-          id: data[0].id,
-          customer_name: formData.customer_name,
-          customer_company: formData.customer_company,
-          customer_email: formData.customer_email,
-          deal_value: formData.deal_value,
-          stage: formData.stage,
-          priority: formData.priority,
-          support_type_needed: formData.support_type_needed,
-          notes: formData.notes
-        },
-        partnerData: {
-          name: `${partner.first_name} ${partner.last_name}`,
-          email: partner.email,
-          organization: partner.organization?.name,
-          tier: partner.organization?.tier
-        }
-      }
-    })
-
-    if (emailError) {
-      console.error('❌ Email error:', emailError)
-      // Show error to user (optional)
-      alert('Deal created but email notification failed: ' + emailError.message)
-    } else {
-      console.log('✅ Email sent:', emailData)
+  body: {
+    dealData: {
+      id: data[0].id,
+      customer_name: formData.customer_name,
+      customer_company: formData.customer_company,
+      customer_email: formData.customer_email,
+      deal_value: formData.deal_value,
+      stage: formData.stage,
+      priority: formData.priority,
+      support_type_needed: formData.support_type_needed,
+      notes: formData.notes
+    },
+    partnerData: {
+      name: `${partner.first_name} ${partner.last_name}`,
+      email: partner.email,
+      organization: partner.organization?.name,
+      tier: partner.organization?.tier
     }
+  }
+})
+
+console.log('📬 Email response:', { emailData, emailError })
+
+if (emailError) {
+  console.error('❌ Email failed:', emailError)
+} else {
+  console.log('✅ Email sent!')
+}
   }
 } catch (emailError) {
   console.error('❌ Email exception:', emailError)
