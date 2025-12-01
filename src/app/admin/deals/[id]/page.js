@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import InvoiceGenerator from '@/components/InvoiceGenerator'
 import Link from 'next/link'
 import { 
   ArrowLeft, User, Mail, Building2, DollarSign, Calendar, 
@@ -322,7 +323,21 @@ export default function AdminDealDetailsPage({ params }) {
                         <p className="text-sm text-gray-600">{formatCurrency(deal.deal_value)}</p>
                       </div>
                     </div>
+                                      <div className="flex items-center space-x-3">
+                    <DollarSign className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Partner Commission</p>
+                      <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission)}</p>
+                    </div>
+                  </div>
 
+                  <div className="flex items-center space-x-3">
+                    <DollarSign className="h-5 w-5 text-gray-400" />
+                    <div>
+                      <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
+                      <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic)}</p>
+                    </div>
+                  </div>
                     <div className="flex items-center space-x-3">
                       <Tag className="h-5 w-5 text-gray-400" />
                       <div>
@@ -519,7 +534,16 @@ export default function AdminDealDetailsPage({ params }) {
                 </div>
               </div>
             )}
-
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+              </div>
+              
+              <div className="p-6 space-y-3">
+                <InvoiceGenerator deal={deal} partner={partner} />
+              </div>
+            </div>
             {/* Admin Note */}
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
               <div className="flex">

@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import InvoiceGenerator from '@/components/InvoiceGenerator'
 import { 
   ArrowLeft, Building2, Mail, Phone, Calendar, 
   DollarSign, User, AlertCircle, TrendingUp,
@@ -273,6 +274,20 @@ export default function DealDetailPage({ params }) {
                   <span className="text-sm text-gray-600">Deal Value</span>
                   <span className="text-sm font-semibold text-gray-900">{formatCurrency(deal.deal_value)}</span>
                 </div>
+                <div className="flex items-center space-x-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Partner Commission</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission)}</p>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <DollarSign className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic)}</p>
+                  </div>
+                </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Current Stage</span>
                   <span className={`text-xs px-2 py-1 rounded-full ${getStageColor(deal.stage)}`}>
@@ -285,6 +300,16 @@ export default function DealDetailPage({ params }) {
                     {Math.floor((new Date() - new Date(deal.created_at)) / (1000 * 60 * 60 * 24))} days
                   </span>
                 </div>
+              </div>
+            </div>
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+              </div>
+              
+              <div className="p-6">
+                <InvoiceGenerator deal={deal} partner={partner} />
               </div>
             </div>
           </div>

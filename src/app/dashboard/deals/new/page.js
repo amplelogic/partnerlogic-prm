@@ -20,7 +20,9 @@ export default function NewDealPage() {
   customer_company: '',
   customer_phone: '',
   deal_value: '',
-  stage: 'new_deal',  // ✅ NEW - Use this instead
+  your_commission: '',
+  price_to_ample_logic: '',
+  stage: 'new_deal',
   priority: 'medium',
   support_type_needed: 'sales',
   notes: '',
@@ -140,6 +142,8 @@ const handleSubmit = async (e) => {
       customer_email: formData.customer_email.trim(),
       customer_company: formData.customer_company.trim(),
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : null,
+      your_commission: formData.your_commission ? parseFloat(formData.your_commission) : null,
+      price_to_ample_logic: formData.price_to_ample_logic ? parseFloat(formData.price_to_ample_logic) : null,
       stage: formData.stage,
       admin_stage: 'urs',
       priority: formData.priority,
@@ -385,7 +389,6 @@ if (emailError) {
                 </div>
               </div>
             </div>
-
             {/* Deal Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
@@ -419,6 +422,50 @@ if (emailError) {
                   {errors.deal_value && (
                     <p className="mt-1 text-sm text-red-600">{errors.deal_value}</p>
                   )}
+                </div>
+
+                <div>
+                  <label htmlFor="your_commission" className="block text-sm font-medium text-gray-700 mb-2">
+                    Your Commission (USD)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <DollarSign className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      name="your_commission"
+                      id="your_commission"
+                      min="0"
+                      step="0.01"
+                      value={formData.your_commission}
+                      onChange={handleInputChange}
+                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="5000.00"
+                    />
+                  </div>
+                </div>
+
+                <div>
+                  <label htmlFor="price_to_ample_logic" className="block text-sm font-medium text-gray-700 mb-2">
+                    Price to Ample Logic (USD)
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <DollarSign className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="number"
+                      name="price_to_ample_logic"
+                      id="price_to_ample_logic"
+                      min="0"
+                      step="0.01"
+                      value={formData.price_to_ample_logic}
+                      onChange={handleInputChange}
+                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="45000.00"
+                    />
+                  </div>
                 </div>
 
                 <div>

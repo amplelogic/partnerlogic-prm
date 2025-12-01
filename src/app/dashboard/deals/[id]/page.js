@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import InvoiceGenerator from '@/components/InvoiceGenerator'
 import Link from 'next/link'
 import { 
   ArrowLeft, Edit2, MoreVertical, User, Mail, Building2, 
@@ -403,7 +404,21 @@ export default function DealDetailsPage({ params }) {
               <p className="text-sm text-gray-600">{formatCurrency(deal.deal_value)}</p>
             </div>
           </div>
+          <div className="flex items-center space-x-3">
+  <DollarSign className="h-5 w-5 text-gray-400" />
+  <div>
+    <p className="text-sm font-medium text-gray-900">Partner Commission</p>
+    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission)}</p>
+  </div>
+</div>
 
+<div className="flex items-center space-x-3">
+  <DollarSign className="h-5 w-5 text-gray-400" />
+  <div>
+    <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
+    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic)}</p>
+  </div>
+</div>
           <div className="flex items-center space-x-3">
             <Tag className="h-5 w-5 text-gray-400" />
             <div>
@@ -511,6 +526,8 @@ export default function DealDetailsPage({ params }) {
               </div>
               
               <div className="p-6 space-y-3">
+                <InvoiceGenerator deal={deal} partner={partner} />
+                
                 <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <Mail className="h-4 w-4 mr-2" />
                   Email Customer
