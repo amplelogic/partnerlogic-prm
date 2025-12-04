@@ -1,13 +1,13 @@
 // src/app/admin/knowledge/new/page.js
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, X, Plus, Tag as TagIcon, Lock, Unlock,
-  FileText, Video, Image, AlertCircle, Eye
+  FileText, Video, Image, AlertCircle, Eye, Folder
 } from 'lucide-react'
 
 export default function NewKnowledgeArticlePage() {
@@ -17,12 +17,14 @@ export default function NewKnowledgeArticlePage() {
     category: 'onboarding',
     access_level: 'all',
     tags: [],
-    published: true
+    published: true,
+    collection_id: null  // ⭐ NEW: Collection support
   })
   const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
+  const [collections, setCollections] = useState([])  // ⭐ NEW: Collections state
 
   const router = useRouter()
   const supabase = createClient()
@@ -43,6 +45,26 @@ export default function NewKnowledgeArticlePage() {
     { value: 'gold', label: 'Gold+', description: 'Gold tier and above', color: 'bg-yellow-100 text-yellow-800' },
     { value: 'platinum', label: 'Platinum Only', description: 'Platinum partners only', color: 'bg-purple-100 text-purple-800' }
   ]
+
+  // ⭐ NEW: Load collections on mount
+  useEffect(() => {
+    loadCollections()
+  }, [])
+
+  // ⭐ NEW: Load collections function
+  const loadCollections = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_collections')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setCollections(data || [])
+    } catch (err) {
+      console.error('Error loading collections:', err)
+    }
+  }
 
   const handleInputChange = (field, value) => {
     setFormData(prev => ({ ...prev, [field]: value }))
@@ -108,13 +130,13 @@ export default function NewKnowledgeArticlePage() {
           category: formData.category,
           access_level: formData.access_level,
           tags: formData.tags,
-          published: publishStatus
+          published: publishStatus,
+          collection_id: formData.collection_id  // ⭐ NEW: Include collection_id
         }])
         .select()
 
       if (insertError) throw insertError
 
-      // Redirect to the article list or the new article
       router.push('/admin/knowledge')
       router.refresh()
 
@@ -349,6 +371,39 @@ Just start new lines for paragraphs."
                   <strong>Draft:</strong> Saves article but keeps it hidden from partners
                 </p>
               </div>
+            </div>
+
+            {/* ⭐ NEW: Collection Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <Folder className="inline h-5 w-5 mr-2 text-purple-600" />
+                Collection
+              </h3>
+              
+              <select
+                value={formData.collection_id || ''}
+                onChange={(e) => handleInputChange('collection_id', e.target.value || null)}
+                className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">No Collection (Uncategorized)</option>
+                {collections.map(col => (
+                  <option key={col.id} value={col.id}>
+                    {col.name}
+                  </option>
+                ))}
+              </select>
+              
+              <p className="mt-2 text-sm text-gray-500">
+                Organize this article into a folder/collection for better organization
+              </p>
+
+              {collections.length === 0 && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    No collections yet. Go to Knowledge Base main page to create collections.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Category */}

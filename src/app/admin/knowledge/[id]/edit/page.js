@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, X, Plus, Tag as TagIcon, Lock, Unlock,
-  FileText, Video, Image, AlertCircle, Eye, Trash2
+  FileText, Video, Image, AlertCircle, Eye, Trash2, Folder
 } from 'lucide-react'
 
 export default function EditKnowledgeArticlePage({ params }) {
@@ -17,7 +17,8 @@ export default function EditKnowledgeArticlePage({ params }) {
     category: 'onboarding',
     access_level: 'all',
     tags: [],
-    published: true
+    published: true,
+    collection_id: null  // ⭐ NEW: Collection support
   })
   const [tagInput, setTagInput] = useState('')
   const [loading, setLoading] = useState(false)
@@ -25,6 +26,7 @@ export default function EditKnowledgeArticlePage({ params }) {
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
   const [deleting, setDeleting] = useState(false)
+  const [collections, setCollections] = useState([])  // ⭐ NEW: Collections state
 
   const router = useRouter()
   const supabase = createClient()
@@ -52,6 +54,26 @@ export default function EditKnowledgeArticlePage({ params }) {
     }
   }, [params.id])
 
+  // ⭐ NEW: Load collections on mount
+  useEffect(() => {
+    loadCollections()
+  }, [])
+
+  // ⭐ NEW: Load collections function
+  const loadCollections = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('knowledge_collections')
+        .select('*')
+        .order('name', { ascending: true })
+      
+      if (error) throw error
+      setCollections(data || [])
+    } catch (err) {
+      console.error('Error loading collections:', err)
+    }
+  }
+
   const loadArticle = async () => {
     try {
       setLoadingArticle(true)
@@ -71,7 +93,8 @@ export default function EditKnowledgeArticlePage({ params }) {
           category: article.category || 'onboarding',
           access_level: article.access_level || 'all',
           tags: article.tags || [],
-          published: article.published !== false
+          published: article.published !== false,
+          collection_id: article.collection_id || null  // ⭐ NEW: Load collection_id
         })
       }
     } catch (err) {
@@ -147,6 +170,7 @@ export default function EditKnowledgeArticlePage({ params }) {
           access_level: formData.access_level,
           tags: formData.tags,
           published: publishStatus,
+          collection_id: formData.collection_id,  // ⭐ NEW: Include collection_id
           updated_at: new Date().toISOString()
         })
         .eq('id', params.id)
@@ -436,6 +460,39 @@ export default function EditKnowledgeArticlePage({ params }) {
                   </button>
                 </div>
               </div>
+            </div>
+
+            {/* ⭐ NEW: Collection Selection */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                <Folder className="inline h-5 w-5 mr-2 text-purple-600" />
+                Collection
+              </h3>
+              
+              <select
+                value={formData.collection_id || ''}
+                onChange={(e) => handleInputChange('collection_id', e.target.value || null)}
+                className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              >
+                <option value="">No Collection (Uncategorized)</option>
+                {collections.map(col => (
+                  <option key={col.id} value={col.id}>
+                    {col.name}
+                  </option>
+                ))}
+              </select>
+              
+              <p className="mt-2 text-sm text-gray-500">
+                Organize this article into a folder/collection for better organization
+              </p>
+
+              {collections.length === 0 && (
+                <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-xs text-blue-700">
+                    No collections yet. Go to Knowledge Base main page to create collections.
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* Category */}
