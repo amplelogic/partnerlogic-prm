@@ -19,7 +19,7 @@ export default function AllDealsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
-  const [viewMode, setViewMode] = useState('list') // 'list' or 'kanban'
+  const [viewMode, setViewMode] = useState('kanban') // 'list' or 'kanban'
 
   const supabase = createClient()
 
