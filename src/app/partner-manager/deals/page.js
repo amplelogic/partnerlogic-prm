@@ -3,10 +3,14 @@
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
+import dynamic from 'next/dynamic'
 import { 
   Search, Filter, Eye, BarChart3, DollarSign,
-  Building2, Calendar, ChevronDown, Users
+  Building2, Calendar, ChevronDown, Users, LayoutGrid, List
 } from 'lucide-react'
+
+// Dynamically import Kanban to avoid SSR issues
+const KanbanView = dynamic(() => import('./kanban-view'), { ssr: false })
 
 export default function AllDealsPage() {
   const [deals, setDeals] = useState([])
@@ -15,6 +19,7 @@ export default function AllDealsPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
   const [showFilters, setShowFilters] = useState(false)
+  const [viewMode, setViewMode] = useState('list') // 'list' or 'kanban'
 
   const supabase = createClient()
 
@@ -155,12 +160,43 @@ export default function AllDealsPage() {
 
   return (
     <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div className="max-w-[calc(100vw-280px)] mx-auto px-4 sm:px-6 lg:px-8">
         <div className="mb-8">
-          <h1 className="text-2xl font-bold text-gray-900">All Deals</h1>
-          <p className="text-gray-600 mt-1">
-            Deals from all your assigned partners
-          </p>
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-2xl font-bold text-gray-900">All Deals</h1>
+              <p className="text-gray-600 mt-1">
+                Deals from all your assigned partners
+              </p>
+            </div>
+            <div className="flex items-center space-x-3">
+              {/* View Toggle */}
+              <div className="flex items-center bg-gray-100 rounded-lg p-1">
+                <button
+                  onClick={() => setViewMode('list')}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'list'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <List className="h-4 w-4 mr-2" />
+                  List
+                </button>
+                <button
+                  onClick={() => setViewMode('kanban')}
+                  className={`flex items-center px-3 py-2 rounded-md text-sm font-medium transition-colors ${
+                    viewMode === 'kanban'
+                      ? 'bg-white text-gray-900 shadow-sm'
+                      : 'text-gray-600 hover:text-gray-900'
+                  }`}
+                >
+                  <LayoutGrid className="h-4 w-4 mr-2" />
+                  Kanban
+                </button>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Stats Cards */}
@@ -214,115 +250,124 @@ export default function AllDealsPage() {
           </div>
         </div>
 
-        {/* Filters and Search */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
-          <div className="p-6">
-            <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
-              <div className="relative flex-1 max-w-lg">
-                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
-                </div>
-                <input
-                  type="text"
-                  placeholder="Search by customer, company, or partner..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                />
-              </div>
-
-              <button
-                onClick={() => setShowFilters(!showFilters)}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
-              >
-                <Filter className="h-4 w-4 mr-2" />
-                Filters
-                <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
-              </button>
-            </div>
-
-            {showFilters && (
-              <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Stage
-                  </label>
-                  <select
-                    value={stageFilter}
-                    onChange={(e) => setStageFilter(e.target.value)}
-                    className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
-                  >
-                    {stages.map(stage => (
-                      <option key={stage.value} value={stage.value}>
-                        {stage.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-            )}
+        {/* Kanban or List View */}
+        {viewMode === 'kanban' ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
           </div>
-        </div>
-
-        {/* Deals List */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-          {filteredDeals.length === 0 ? (
-            <div className="text-center py-12">
-              <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
-              <h3 className="text-lg font-medium text-gray-900 mb-2">
-                {deals.length === 0 ? 'No deals yet' : 'No deals match your filters'}
-              </h3>
-            </div>
-          ) : (
-            <div className="divide-y divide-gray-200">
-              {filteredDeals.map((deal) => (
-                <div key={deal.id} className="p-6 hover:bg-gray-50 transition-colors">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-center space-x-3 mb-2">
-                        <h3 className="text-lg font-medium text-gray-900">
-                          {deal.customer_name}
-                        </h3>
-                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStageColor(deal.stage)}`}>
-                          {deal.stage?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
-                        </span>
-                      </div>
-                      
-                      <div className="flex items-center space-x-6 text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Building2 className="h-4 w-4 mr-1" />
-                          {deal.customer_company}
-                        </div>
-                        <div className="flex items-center">
-                          <DollarSign className="h-4 w-4 mr-1" />
-                          {formatCurrency(deal.deal_value)}
-                        </div>
-                        <div className="flex items-center">
-                          <Users className="h-4 w-4 mr-1" />
-                          {deal.partners?.first_name} {deal.partners?.last_name}
-                        </div>
-                        <div className="flex items-center">
-                          <Calendar className="h-4 w-4 mr-1" />
-                          {new Date(deal.created_at).toLocaleDateString()}
-                        </div>
-                      </div>
+        ) : (
+          <>
+            {/* Filters and Search for List View */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+              <div className="p-6">
+                <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
+                  <div className="relative flex-1 max-w-lg">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Search className="h-5 w-5 text-gray-400" />
                     </div>
+                    <input
+                      type="text"
+                      placeholder="Search by customer, company, or partner..."
+                      value={searchTerm}
+                      onChange={(e) => setSearchTerm(e.target.value)}
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                    />
+                  </div>
 
-                    <div className="ml-4">
-                      <Link
-                        href={`/partner-manager/deals/${deal.id}`}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                  <button
+                    onClick={() => setShowFilters(!showFilters)}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                  >
+                    <Filter className="h-4 w-4 mr-2" />
+                    Filters
+                    <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
+                  </button>
+                </div>
+
+                {showFilters && (
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Stage
+                      </label>
+                      <select
+                        value={stageFilter}
+                        onChange={(e) => setStageFilter(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
                       >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View
-                      </Link>
+                        {stages.map(stage => (
+                          <option key={stage.value} value={stage.value}>
+                            {stage.label}
+                          </option>
+                        ))}
+                      </select>
                     </div>
                   </div>
-                </div>
-              ))}
+                )}
+              </div>
             </div>
-          )}
-        </div>
+
+            {/* Deals List */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              {filteredDeals.length === 0 ? (
+                <div className="text-center py-12">
+                  <BarChart3 className="h-12 w-12 text-gray-400 mx-auto mb-4" />
+                  <h3 className="text-lg font-medium text-gray-900 mb-2">
+                    {deals.length === 0 ? 'No deals yet' : 'No deals match your filters'}
+                  </h3>
+                </div>
+              ) : (
+                <div className="divide-y divide-gray-200">
+                  {filteredDeals.map((deal) => (
+                    <div key={deal.id} className="p-6 hover:bg-gray-50 transition-colors">
+                      <div className="flex items-center justify-between">
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center space-x-3 mb-2">
+                            <h3 className="text-lg font-medium text-gray-900">
+                              {deal.customer_name}
+                            </h3>
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStageColor(deal.stage)}`}>
+                              {deal.stage?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                            </span>
+                          </div>
+                          
+                          <div className="flex items-center space-x-6 text-sm text-gray-600">
+                            <div className="flex items-center">
+                              <Building2 className="h-4 w-4 mr-1" />
+                              {deal.customer_company}
+                            </div>
+                            <div className="flex items-center">
+                              <DollarSign className="h-4 w-4 mr-1" />
+                              {formatCurrency(deal.deal_value)}
+                            </div>
+                            <div className="flex items-center">
+                              <Users className="h-4 w-4 mr-1" />
+                              {deal.partners?.first_name} {deal.partners?.last_name}
+                            </div>
+                            <div className="flex items-center">
+                              <Calendar className="h-4 w-4 mr-1" />
+                              {new Date(deal.created_at).toLocaleDateString()}
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="ml-4">
+                          <Link
+                            href={`/partner-manager/deals/${deal.id}`}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Link>
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          </>
+        )}
       </div>
     </div>
   )
