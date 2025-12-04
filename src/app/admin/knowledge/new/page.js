@@ -7,7 +7,8 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, X, Plus, Tag as TagIcon, Lock, Unlock,
-  FileText, Video, Image, AlertCircle, Eye, Folder
+  FileText, Video, Image, AlertCircle, Eye, Folder, Upload, File,
+   FileVideo, FileImage, FileAudio, Download
 } from 'lucide-react'
 
 export default function NewKnowledgeArticlePage() {
@@ -24,7 +25,9 @@ export default function NewKnowledgeArticlePage() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [showPreview, setShowPreview] = useState(false)
-  const [collections, setCollections] = useState([])  // ⭐ NEW: Collections state
+  const [collections, setCollections] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [uploading, setUploading] = useState(false)
 
   const router = useRouter()
   const supabase = createClient()
@@ -131,7 +134,8 @@ export default function NewKnowledgeArticlePage() {
           access_level: formData.access_level,
           tags: formData.tags,
           published: publishStatus,
-          collection_id: formData.collection_id  // ⭐ NEW: Include collection_id
+          collection_id: formData.collection_id || null,
+          attachments: attachments
         }])
         .select()
 
@@ -188,6 +192,75 @@ export default function NewKnowledgeArticlePage() {
       })
       .filter(Boolean)
   }
+
+  const handleFileUpload = async (e) => {
+  const files = Array.from(e.target.files)
+  if (files.length === 0) return
+
+  setUploading(true)
+  const newAttachments = []
+
+  try {
+    for (const file of files) {
+      // Generate unique filename
+      const fileExt = file.name.split('.').pop()
+      const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+      const filePath = `${fileName}`
+
+      // Upload to Supabase Storage
+      const { data, error } = await supabase.storage
+        .from('knowledge-files')
+        .upload(filePath, file, {
+          cacheControl: '3600',
+          upsert: false
+        })
+
+      if (error) throw error
+
+      // Get public URL
+      const { data: { publicUrl } } = supabase.storage
+        .from('knowledge-files')
+        .getPublicUrl(filePath)
+
+      newAttachments.push({
+        name: file.name,
+        url: publicUrl,
+        type: file.type,
+        size: file.size,
+        uploaded_at: new Date().toISOString()
+      })
+    }
+
+    setAttachments([...attachments, ...newAttachments])
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      alert('Error uploading files: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeAttachment = (index) => {
+    setAttachments(attachments.filter((_, i) => i !== index))
+  }
+
+  const getFileIcon = (type) => {
+    if (type.startsWith('video/')) return FileVideo
+    if (type.startsWith('image/')) return FileImage
+    if (type.startsWith('audio/')) return FileAudio
+    if (type.includes('pdf')) return FileText
+    return File
+  }
+
+  const formatFileSize = (bytes) => {
+    if (bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
+  
 
   return (
     <div className="py-6">
@@ -425,6 +498,58 @@ Just start new lines for paragraphs."
               <p className="mt-2 text-sm text-gray-500">
                 Choose the category that best describes this article
               </p>
+            </div>
+            
+            {/* File Attachments */}
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                <Upload className="inline h-4 w-4 mr-1" />
+                File Attachments
+              </label>
+              
+              <input
+                type="file"
+                multiple
+                onChange={handleFileUpload}
+                disabled={uploading}
+                className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-purple-50 file:text-purple-700 hover:file:bg-purple-100"
+              />
+              
+              <p className="text-xs text-gray-500 mt-1">
+                Upload PDFs, videos, images, or documents
+              </p>
+
+              {uploading && (
+                <div className="mt-2 text-sm text-purple-600">
+                  Uploading files...
+                </div>
+              )}
+
+              {/* Show uploaded files */}
+              {attachments.length > 0 && (
+                <div className="mt-3 space-y-2">
+                  {attachments.map((file, index) => {
+                    const FileIcon = getFileIcon(file.type)
+                    return (
+                      <div key={index} className="flex items-center justify-between p-2 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-2 flex-1 min-w-0">
+                          <FileIcon className="h-4 w-4 text-gray-600 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm text-gray-900 truncate">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <button
+                          onClick={() => removeAttachment(index)}
+                          className="ml-2 text-red-600 hover:text-red-800"
+                        >
+                          <X className="h-4 w-4" />
+                        </button>
+                      </div>
+                    )
+                  })}
+                </div>
+              )}
             </div>
 
             {/* Access Level */}
