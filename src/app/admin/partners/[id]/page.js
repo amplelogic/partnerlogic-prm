@@ -3,16 +3,17 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation' // Changed import
 import Link from 'next/link'
 import { 
   ArrowLeft, Edit2, Mail, Phone, Building2, Calendar, 
   Award, Percent, DollarSign, BarChart3, Headphones,
   CheckCircle, Clock, XCircle, User, TrendingUp, FileText,
-  AlertCircle, Shield, BookOpen 
+  AlertCircle, Shield, BookOpen
 } from 'lucide-react'
 
-export default function PartnerViewPage({ params }) {
+export default function PartnerViewPage() { // Removed params from props
+  const params = useParams() // Use useParams hook instead
   const [partner, setPartner] = useState(null)
   const [stats, setStats] = useState({
     totalDeals: 0,
@@ -25,8 +26,10 @@ export default function PartnerViewPage({ params }) {
   const supabase = createClient()
 
   useEffect(() => {
-    loadPartnerData()
-  }, [params.id])
+    if (params?.id) { // Add check for params.id
+      loadPartnerData()
+    }
+  }, [params?.id]) // Update dependency
 
   const loadPartnerData = async () => {
     try {
@@ -81,6 +84,7 @@ export default function PartnerViewPage({ params }) {
     }
   }
 
+  // Rest of your component code stays the same...
   const formatCurrency = (amount) => {
     if (!amount) return '$0'
     return new Intl.NumberFormat('en-US', {
@@ -397,6 +401,8 @@ export default function PartnerViewPage({ params }) {
                     </span>
                   </div>
                 </div>
+
+                {/* Learning Access Status - NEW */}
                 <div className="flex items-center space-x-3">
                   <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
                     <BookOpen className="h-5 w-5 text-emerald-600" />

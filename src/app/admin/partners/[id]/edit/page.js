@@ -3,7 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { useRouter } from 'next/navigation'
+import { useRouter, useParams } from 'next/navigation' 
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, AlertTriangle, CheckCircle, User, Mail, 
@@ -12,7 +12,8 @@ import {
 import ProductMultiSelect from '@/components/ProductMultiSelect'
 
 
-export default function EditPartnerPage({ params }) {
+export default function EditPartnerPage({}) {
+  const params = useParams()
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
@@ -63,9 +64,11 @@ export default function EditPartnerPage({ params }) {
   ]
 
   useEffect(() => {
-    loadPartner()
+     if (params?.id) { 
+      loadPartner()
+    }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [params.id, supabase])
+  }, [params?.id])
 
   const loadPartner = async () => {
     try {
