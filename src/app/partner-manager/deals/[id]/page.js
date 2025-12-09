@@ -9,6 +9,8 @@ import {
   DollarSign, User, AlertCircle, TrendingUp,
   FileText, Package
 } from 'lucide-react'
+import { CURRENCIES } from '@/lib/currencyUtils'
+
 
 export default function DealDetailPage({ params }) {
   const [deal, setDeal] = useState(null)
@@ -53,14 +55,17 @@ export default function DealDetailPage({ params }) {
     }
   }
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+const formatCurrency = (amount, currencyCode = 'USD') => {
+  if (!amount) return `${CURRENCIES[currencyCode]?.symbol || '$'}0`
+  
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.code,
+    minimumFractionDigits: 0
+  }).format(amount)
+}
 
   const getStageColor = (stage) => {
     switch (stage) {
@@ -145,7 +150,7 @@ export default function DealDetailPage({ params }) {
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <p className="text-sm text-gray-600">Deal Value</p>
-                    <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.deal_value)}</p>
+                    <p className="text-xl font-bold text-gray-900">{formatCurrency(deal.deal_value, deal.currency)}</p>
                   </div>
                   <div>
                     <p className="text-sm text-gray-600">Expected Close Date</p>
@@ -272,20 +277,20 @@ export default function DealDetailPage({ params }) {
               <div className="p-6 space-y-4">
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Deal Value</span>
-                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(deal.deal_value)}</span>
+                  <span className="text-sm font-semibold text-gray-900">{formatCurrency(deal.deal_value, deal.currency)}</span>
                 </div>
                 <div className="flex items-center space-x-3">
                   <DollarSign className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">Partner Commission</p>
-                    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission)}</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission, deal.currency)}</p>
                   </div>
                 </div>
                 <div className="flex items-center space-x-3">
                   <DollarSign className="h-5 w-5 text-gray-400" />
                   <div>
                     <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
-                    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic)}</p>
+                    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic, deal.currency)}</p>
                   </div>
                 </div>
                 <div className="flex items-center justify-between">
@@ -293,6 +298,21 @@ export default function DealDetailPage({ params }) {
                   <span className={`text-xs px-2 py-1 rounded-full ${getStageColor(deal.stage)}`}>
                     {deal.stage?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
                   </span>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <Calendar className="h-5 w-5 text-gray-400" />
+                  <div>
+                    <p className="text-sm font-medium text-gray-900">Expected Close Date</p>
+                    <p className="text-sm text-gray-600">
+                      {deal.expected_close_date 
+                        ? new Date(deal.expected_close_date).toLocaleDateString('en-US', {
+                            year: 'numeric',
+                            month: 'long',
+                            day: 'numeric'
+                          })
+                        : 'Not set'}
+                    </p>
+                  </div>
                 </div>
                 <div className="flex items-center justify-between">
                   <span className="text-sm text-gray-600">Days in Pipeline</span>

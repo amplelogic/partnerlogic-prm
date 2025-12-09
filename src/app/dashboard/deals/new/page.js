@@ -20,6 +20,7 @@ export default function NewDealPage() {
   customer_company: '',
   customer_phone: '',
   deal_value: '',
+  currency: 'USD',
   your_commission: '',
   price_to_ample_logic: '',
   stage: 'new_deal',
@@ -51,6 +52,16 @@ export default function NewDealPage() {
     { value: 'presales', label: 'Pre-sales Engineering' },
     { value: 'technical', label: 'Technical Support' },
     { value: 'accounts', label: 'Account Management' }
+  ]
+
+  const currencies = [
+    { value: 'USD', label: 'USD ($)', symbol: '$' },
+    { value: 'EUR', label: 'EUR (€)', symbol: '€' },
+    { value: 'GBP', label: 'GBP (£)', symbol: '£' },
+    { value: 'INR', label: 'INR (₹)', symbol: '₹' },
+    { value: 'AUD', label: 'AUD (A$)', symbol: 'A$' },
+    { value: 'CAD', label: 'CAD (C$)', symbol: 'C$' },
+    { value: 'JPY', label: 'JPY (¥)', symbol: '¥' }
   ]
 
   useEffect(() => {
@@ -142,13 +153,15 @@ const handleSubmit = async (e) => {
       customer_email: formData.customer_email.trim(),
       customer_company: formData.customer_company.trim(),
       deal_value: formData.deal_value ? parseFloat(formData.deal_value) : null,
+      currency: formData.currency,
       your_commission: formData.your_commission ? parseFloat(formData.your_commission) : null,
       price_to_ample_logic: formData.price_to_ample_logic ? parseFloat(formData.price_to_ample_logic) : null,
       stage: formData.stage,
       admin_stage: 'urs',
       priority: formData.priority,
       support_type_needed: formData.support_type_needed,
-      notes: formData.notes.trim() || null
+      notes: formData.notes.trim() || null,
+      expected_close_date: formData.expected_close_date || null
     }
 
     const { data, error } = await supabase
@@ -423,6 +436,25 @@ if (emailError) {
                     <p className="mt-1 text-sm text-red-600">{errors.deal_value}</p>
                   )}
                 </div>
+                
+                <div>
+                  <label htmlFor="currency" className="block text-sm font-medium text-gray-700 mb-2">
+                    Currency
+                  </label>
+                  <select
+                    name="currency"
+                    id="currency"
+                    value={formData.currency}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  >
+                    {currencies.map(curr => (
+                      <option key={curr.value} value={curr.value}>
+                        {curr.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
 
                 <div>
                   <label htmlFor="your_commission" className="block text-sm font-medium text-gray-700 mb-2">
@@ -485,6 +517,24 @@ if (emailError) {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                <div>
+                  <label htmlFor="expected_close_date" className="block text-sm font-medium text-gray-700 mb-2">
+                    Expected Close Date
+                  </label>
+                  <input
+                    type="date"
+                    name="expected_close_date"
+                    id="expected_close_date"
+                    value={formData.expected_close_date}
+                    onChange={handleInputChange}
+                    min={new Date().toISOString().split('T')[0]}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                  <p className="mt-1 text-xs text-gray-500">
+                    When do you expect to close this deal?
+                  </p>
                 </div>
 
                 <div>

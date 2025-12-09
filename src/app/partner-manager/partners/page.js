@@ -204,8 +204,7 @@ export default function MyPartnersPage() {
                             {partner.dealsCount} Deals
                           </div>
                           <div className="flex items-center">
-                            <DollarSign className="h-4 w-4 mr-1" />
-                            {formatCurrency(partner.pipelineValue)} Pipeline
+                            {formatCurrency(partner.pipelineValue, partner.currency)} Pipeline
                           </div>
                           <div className="flex items-center">
                             <Calendar className="h-4 w-4 mr-1" />

@@ -8,6 +8,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, User, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
+import { CURRENCIES } from '@/lib/currencyUtils'
+import { de } from 'zod/v4/locales'
 
 // SALES STAGES - Visible by default
 const SALES_STAGES = [
@@ -49,15 +51,17 @@ function DealCard({ deal, isDragging }) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      notation: 'compact'
-    }).format(amount)
-  }
+const formatCurrency = (amount, currencyCode = 'USD') => {
+  if (!amount) return `${CURRENCIES[currencyCode]?.symbol || '$'}0`
+  
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.code,
+    minimumFractionDigits: 0
+  }).format(amount)
+}
 
   const getSalesStageColor = (stage) => {
     switch (stage) {
@@ -104,8 +108,7 @@ function DealCard({ deal, isDragging }) {
       )}
 
       <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
-        <DollarSign className="h-3 w-3 mr-0.5" />
-        {formatCurrency(deal.deal_value)}
+        {formatCurrency(deal.deal_value, deal.currency)}
       </div>
 
       {deal.partner && (
@@ -140,16 +143,17 @@ function KanbanColumn({ stage, deals, activeId }) {
   const dealsInStage = deals.filter(deal => deal.admin_stage === stage.id)
   const totalValue = dealsInStage.reduce((sum, deal) => sum + (deal.deal_value || 0), 0)
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      notation: 'compact'
-    }).format(amount)
-  }
-
+const formatCurrency = (amount, currencyCode = 'USD') => {
+  if (!amount) return `${CURRENCIES[currencyCode]?.symbol || '$'}0`
+  
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.code,
+    minimumFractionDigits: 0
+  }).format(amount)
+}
   return (
     <div className="flex flex-col w-44 flex-shrink-0 bg-gray-50 rounded-lg">
       <div className={`p-2 border-b-3 rounded-t-lg ${stage.color}`}>
@@ -160,7 +164,7 @@ function KanbanColumn({ stage, deals, activeId }) {
           </span>
         </div>
         <div className="text-[10px] font-medium text-gray-600">
-          {formatCurrency(totalValue)}
+          {formatCurrency(totalValue, dealsInStage[0]?.currency)}
         </div>
       </div>
 
@@ -231,6 +235,7 @@ function CollapsibleDivider({ isExpanded, onToggle, implementationDealsCount }) 
 export default function AdminKanbanView({ deals, onDealUpdate }) {
   const [activeId, setActiveId] = useState(null)
   const [isImplementationExpanded, setIsImplementationExpanded] = useState(false)
+  
   
   const dealsWithAdminStage = deals.map(deal => ({
     ...deal,

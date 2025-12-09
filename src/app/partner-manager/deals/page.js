@@ -6,8 +6,10 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { 
   Search, Filter, Eye, BarChart3, DollarSign,
-  Building2, Calendar, ChevronDown, Users, LayoutGrid, List
+  Building2, Calendar, ChevronDown, Users, LayoutGrid, List, Download
 } from 'lucide-react'
+import { CURRENCIES } from '@/lib/currencyUtils'
+
 
 // Dynamically import Kanban to avoid SSR issues
 const KanbanView = dynamic(() => import('./kanban-view'), { ssr: false })
@@ -115,14 +117,17 @@ export default function AllDealsPage() {
     setFilteredDeals(filtered)
   }
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+ const formatCurrency = (amount, currencyCode = 'USD') => {
+  if (!amount) return `${CURRENCIES[currencyCode]?.symbol || '$'}0`
+  
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.code,
+    minimumFractionDigits: 0
+  }).format(amount)
+}
 
   const getStageColor = (stage) => {
     switch (stage) {
@@ -145,6 +150,62 @@ export default function AllDealsPage() {
   }
 
   const stats = calculateStats()
+
+  const exportToCSV = () => {
+  // Prepare CSV headers
+  const headers = [
+    'Customer Name',
+    'Company',
+    'Email',
+    'Phone',
+    'Deal Value',
+    'Currency',
+    'Commission',
+    'Stage',
+    'Priority',
+    'Expected Close Date',
+    'Created Date',
+    'Notes'
+  ]
+
+  // Prepare CSV rows
+  const rows = filteredDeals.map(deal => [
+    deal.customer_name || '',
+    deal.customer_company || '',
+    deal.customer_email || '',
+    deal.customer_phone || '',
+    deal.deal_value || 0,
+    deal.currency || 'USD',
+    deal.your_commission || 0,
+    deal.stage || '',
+    deal.priority || '',
+    deal.expected_close_date 
+      ? new Date(deal.expected_close_date).toLocaleDateString()
+      : '',
+    new Date(deal.created_at).toLocaleDateString(),
+    deal.notes ? `"${deal.notes.replace(/"/g, '""')}"` : ''
+  ])
+
+  // Combine headers and rows
+  const csvContent = [
+    headers.join(','),
+    ...rows.map(row => row.join(','))
+  ].join('\n')
+
+  // Create blob and download
+  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' })
+  const link = document.createElement('a')
+  const url = URL.createObjectURL(blob)
+  
+  link.setAttribute('href', url)
+  link.setAttribute('download', `deals_export_${new Date().toISOString().split('T')[0]}.csv`)
+  link.style.visibility = 'hidden'
+  
+  document.body.appendChild(link)
+  link.click()
+  document.body.removeChild(link)
+}
+
 
   if (loading) {
     return (
@@ -219,7 +280,7 @@ export default function AllDealsPage() {
                 <DollarSign className="h-6 w-6 text-green-600" />
               </div>
               <div className="ml-4">
-                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalValue)}</p>
+                <p className="text-2xl font-bold text-gray-900">{formatCurrency(stats.totalValue, deals[0]?.currency)}</p>
                 <p className="text-sm text-gray-600">Total Value</p>
               </div>
             </div>
@@ -282,6 +343,15 @@ export default function AllDealsPage() {
                     Filters
                     <ChevronDown className={`ml-2 h-4 w-4 transition-transform ${showFilters ? 'rotate-180' : ''}`} />
                   </button>
+                  <button
+                    onClick={exportToCSV}
+                    disabled={filteredDeals.length === 0}
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    title={filteredDeals.length === 0 ? 'No deals to export' : 'Export filtered deals to CSV'}
+                  >
+                    <Download className="h-4 w-4 mr-2" />
+                    Export CSV ({filteredDeals.length})
+                  </button>
                 </div>
 
                 {showFilters && (
@@ -337,8 +407,7 @@ export default function AllDealsPage() {
                               {deal.customer_company}
                             </div>
                             <div className="flex items-center">
-                              <DollarSign className="h-4 w-4 mr-1" />
-                              {formatCurrency(deal.deal_value)}
+                              {formatCurrency(deal.deal_value, deal.currency)}
                             </div>
                             <div className="flex items-center">
                               <Users className="h-4 w-4 mr-1" />

@@ -1,13 +1,13 @@
-// src/app/dashboard/deals/kanban-view.js
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
+import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
 
 // PARTNER STAGES - Only up to closed_lost
 const PARTNER_STAGES = [
@@ -35,16 +35,6 @@ function DealCard({ deal, isDragging }) {
     opacity: isDragging ? 0.5 : 1,
   }
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      notation: 'compact'
-    }).format(amount)
-  }
-
   return (
     <div
       ref={setNodeRef}
@@ -60,8 +50,7 @@ function DealCard({ deal, isDragging }) {
 
       {/* Price */}
       <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
-        <DollarSign className="h-3 w-3 mr-0.5" />
-        {formatCurrency(deal.deal_value)}
+        {formatCurrency(deal.deal_value, deal.currency)}
       </div>
 
       {/* Open Deal Button */}
@@ -90,16 +79,6 @@ function KanbanColumn({ stage, deals, activeId }) {
   const dealsInStage = deals.filter(deal => deal.stage === stage.id)
   const totalValue = dealsInStage.reduce((sum, deal) => sum + (deal.deal_value || 0), 0)
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0,
-      notation: 'compact'
-    }).format(amount)
-  }
-
   return (
     <div className="flex flex-col w-44 flex-shrink-0 bg-gray-50 rounded-lg">
       {/* Column Header */}
@@ -111,7 +90,7 @@ function KanbanColumn({ stage, deals, activeId }) {
           </span>
         </div>
         <div className="text-[10px] font-medium text-gray-600">
-          {formatCurrency(totalValue)}
+          {formatCurrency(totalValue, dealsInStage[0]?.currency)}
         </div>
       </div>
 
@@ -145,6 +124,11 @@ export default function KanbanView({ deals, onDealUpdate }) {
   const [activeId, setActiveId] = useState(null)
   const [localDeals, setLocalDeals] = useState(deals)
   const supabase = createClient()
+
+  // ADD THIS: Update localDeals when deals prop changes
+  useEffect(() => {
+    setLocalDeals(deals)
+  }, [deals])
 
   const sensors = useSensors(
     useSensor(PointerSensor, {
@@ -268,13 +252,7 @@ export default function KanbanView({ deals, onDealUpdate }) {
               {activeDeal.customer_name}
             </h4>
             <div className="flex items-center text-xs font-semibold text-green-600 mt-1">
-              <DollarSign className="h-3 w-3 mr-0.5" />
-              {new Intl.NumberFormat('en-US', {
-                style: 'currency',
-                currency: 'USD',
-                minimumFractionDigits: 0,
-                notation: 'compact'
-              }).format(activeDeal.deal_value || 0)}
+              {formatCurrency(activeDeal.deal_value, activeDeal.currency)}
             </div>
           </div>
         ) : null}

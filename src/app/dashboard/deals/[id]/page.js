@@ -13,6 +13,7 @@ import {
   Phone, FileText, handshake,
   HandshakeIcon
 } from 'lucide-react'
+import { CURRENCIES } from '@/lib/currencyUtils'
 
 export default function DealDetailsPage({ params }) {
   const [deal, setDeal] = useState(null)
@@ -191,14 +192,17 @@ export default function DealDetailsPage({ params }) {
     }
   }
 
-  const formatCurrency = (amount) => {
-    if (!amount) return '$0'
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      minimumFractionDigits: 0
-    }).format(amount)
-  }
+const formatCurrency = (amount, currencyCode = 'USD') => {
+  if (!amount) return `${CURRENCIES[currencyCode]?.symbol || '$'}0`
+  
+  const currency = CURRENCIES[currencyCode] || CURRENCIES.USD
+  
+  return new Intl.NumberFormat('en-US', {
+    style: 'currency',
+    currency: currency.code,
+    minimumFractionDigits: 0
+  }).format(amount)
+}
 
   const getActivityIcon = (type) => {
     switch (type) {
@@ -394,6 +398,21 @@ export default function DealDetailsPage({ params }) {
             <p className="text-sm text-gray-600">{getStageInfo(deal.stage).label}</p>
           </div>
         </div>
+        <div className="flex items-center space-x-3">
+            <Calendar className="h-5 w-5 text-gray-400" />
+            <div>
+              <p className="text-sm font-medium text-gray-900">Expected Close Date</p>
+              <p className="text-sm text-gray-600">
+                {deal.expected_close_date 
+                  ? new Date(deal.expected_close_date).toLocaleDateString('en-US', {
+                      year: 'numeric',
+                      month: 'long',
+                      day: 'numeric'
+                    })
+                  : 'Not set'}
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
@@ -401,14 +420,14 @@ export default function DealDetailsPage({ params }) {
             <DollarSign className="h-5 w-5 text-gray-400" />
             <div>
               <p className="text-sm font-medium text-gray-900">Deal Value</p>
-              <p className="text-sm text-gray-600">{formatCurrency(deal.deal_value)}</p>
+              <p className="text-sm text-gray-600">{formatCurrency(deal.deal_value, deal.currency)}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
   <DollarSign className="h-5 w-5 text-gray-400" />
   <div>
     <p className="text-sm font-medium text-gray-900">Partner Commission</p>
-    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission)}</p>
+    <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission, deal.currency)}</p>
   </div>
 </div>
 
@@ -416,7 +435,7 @@ export default function DealDetailsPage({ params }) {
   <DollarSign className="h-5 w-5 text-gray-400" />
   <div>
     <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
-    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic)}</p>
+    <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic, deal.currency)}</p>
   </div>
 </div>
           <div className="flex items-center space-x-3">
@@ -582,7 +601,7 @@ export default function DealDetailsPage({ params }) {
                   <div className="flex justify-between items-center">
                     <span className="text-sm text-gray-600">Expected Value</span>
                     <span className="text-lg font-bold text-green-600">
-                      {formatCurrency(deal.deal_value)}
+                      {formatCurrency(deal.deal_value, deal.currency)}
                     </span>
                   </div>
                 </div>
