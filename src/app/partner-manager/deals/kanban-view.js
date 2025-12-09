@@ -1,14 +1,13 @@
 // src/app/partner-manager/deals/kanban-view.js
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, User } from 'lucide-react'
 import Link from 'next/link'
-import { useState, useEffect } from 'react'
 import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
 
 

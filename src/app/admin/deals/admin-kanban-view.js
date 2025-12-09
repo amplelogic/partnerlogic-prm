@@ -9,7 +9,6 @@ import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, User, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { CURRENCIES } from '@/lib/currencyUtils'
-import { de } from 'zod/v4/locales'
 
 // SALES STAGES - Visible by default
 const SALES_STAGES = [
