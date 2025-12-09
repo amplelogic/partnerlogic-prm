@@ -118,7 +118,7 @@ function KanbanColumn({ stage, deals, activeId }) {
     </div>
   )
 }
-
+ 
 // Main Kanban Board Component
 export default function KanbanView({ deals, onDealUpdate }) {
   const [activeId, setActiveId] = useState(null)
