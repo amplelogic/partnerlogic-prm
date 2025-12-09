@@ -75,25 +75,27 @@ export default function DashboardLayout({ children }) {
 
   // NEW: Check if MDF is enabled for this partner
   const mdfEnabled = partner?.organization?.mdf_enabled !== false // Default to true if not set
+  const learningEnabled = partner?.organization?.learning_enabled !== false // Default to true if not set
 
   // Base navigation items
-  const baseNavigation = [
-    { name: 'Dashboard', href: '/dashboard', icon: Home },
-    { name: 'Deals', href: '/dashboard/deals', icon: BarChart3 },
-    { name: 'Support', href: '/dashboard/support', icon: Headphones },
-    { name: 'Learning', href: '/dashboard/learning', icon: BookOpen },
-    { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: FileText },
-  ]
+const baseNavigation = [
+  { name: 'Dashboard', href: '/dashboard', icon: Home },
+  { name: 'Deals', href: '/dashboard/deals', icon: BarChart3 },
+  { name: 'Support', href: '/dashboard/support', icon: Headphones },
+  // Conditionally add Learning tab
+  ...(learningEnabled ? [{ name: 'Learning', href: '/dashboard/learning', icon: BookOpen }] : []),
+  { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: FileText },
+]
 
   // NEW: Conditionally add MDF if enabled
-  const navigation = [
-    ...baseNavigation,
-    ...(mdfEnabled ? [{ name: 'MDF Requests', href: '/dashboard/mdf', icon: TrendingUp }] : []),
-    { name: 'Settings', href: '/dashboard/settings', icon: Settings },
-  ].map(item => ({
-    ...item,
-    current: pathname === item.href
-  }))
+const navigation = [
+  ...baseNavigation,
+  ...(mdfEnabled ? [{ name: 'MDF Requests', href: '/dashboard/mdf', icon: TrendingUp }] : []),
+  { name: 'Settings', href: '/dashboard/settings', icon: Settings },
+].map(item => ({
+  ...item,
+  current: pathname === item.href
+}))
 
   return (
     <div className="min-h-screen bg-gray-50">

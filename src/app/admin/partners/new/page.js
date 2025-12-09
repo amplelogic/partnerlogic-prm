@@ -30,6 +30,7 @@ export default function NewPartnerPage() {
     discount_percentage: 0,
     mdf_allocation: 0,
     mdf_enabled: false,
+    learning_enabled: true,
     // Account Type
     account_type: 'partner'
   })
@@ -51,34 +52,39 @@ export default function NewPartnerPage() {
     { value: 'platinum', label: 'Platinum', discount: 20, mdf: 50000 }
   ]
 
-  const handleInputChange = (e) => {
-    const { name, value, type, checked } = e.target
+const handleInputChange = (e) => {
+  const { name, value, type, checked } = e.target
+  
+  if (name === 'mdf_enabled') {
+    setFormData(prev => ({
+      ...prev,
+      mdf_enabled: checked,
+      mdf_allocation: checked ? (tiers.find(t => t.value === prev.tier)?.mdf || 0) : 0
+    }))
+  } else if (name === 'learning_enabled') { // NEW
+    setFormData(prev => ({
+      ...prev,
+      learning_enabled: checked
+    }))
+  } else {
+    setFormData(prev => ({ ...prev, [name]: value }))
     
-    if (name === 'mdf_enabled') {
-      setFormData(prev => ({
-        ...prev,
-        mdf_enabled: checked,
-        mdf_allocation: checked ? (tiers.find(t => t.value === prev.tier)?.mdf || 0) : 0
-      }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-      
-      if (name === 'tier') {
-        const tierInfo = tiers.find(t => t.value === value)
-        if (tierInfo) {
-          setFormData(prev => ({
-            ...prev,
-            discount_percentage: tierInfo.discount,
-            mdf_allocation: prev.mdf_enabled ? tierInfo.mdf : 0
-          }))
-        }
+    if (name === 'tier') {
+      const tierInfo = tiers.find(t => t.value === value)
+      if (tierInfo) {
+        setFormData(prev => ({
+          ...prev,
+          discount_percentage: tierInfo.discount,
+          mdf_allocation: prev.mdf_enabled ? tierInfo.mdf : 0
+        }))
       }
     }
-    
-    if (errors[name]) {
-      setErrors(prev => ({ ...prev, [name]: '' }))
-    }
   }
+  
+  if (errors[name]) {
+    setErrors(prev => ({ ...prev, [name]: '' }))
+  }
+}
 
   const validateForm = () => {
     const newErrors = {}
@@ -145,7 +151,8 @@ export default function NewPartnerPage() {
             tier: formData.tier,
             discount_percentage: parseInt(formData.discount_percentage),
             mdf_allocation: formData.mdf_enabled ? parseInt(formData.mdf_allocation) : 0,
-            mdf_enabled: formData.mdf_enabled
+            mdf_enabled: formData.mdf_enabled,
+            learning_enabled: formData.learning_enabled
           } : null,
           // NEW: Send selected product IDs
           product_ids: selectedProducts.map(p => p.id)
@@ -461,6 +468,31 @@ export default function NewPartnerPage() {
                             id="mdf_enabled"
                             name="mdf_enabled"
                             checked={formData.mdf_enabled}
+                            onChange={handleInputChange}
+                            className="sr-only peer"
+                          />
+                          <div className="w-11 h-6 bg-gray-200 peer-focus:outline-none peer-focus:ring-4 peer-focus:ring-blue-300 rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-blue-600"></div>
+                        </label>
+                      </div>
+                    </div>
+
+                    {/* Learning Access Toggle - NEW */}
+                    <div className="md:col-span-2">
+                      <div className="flex items-center justify-between p-4 bg-gray-50 rounded-lg border border-gray-200">
+                        <div className="flex-1">
+                          <label htmlFor="learning_enabled" className="block text-sm font-medium text-gray-900 mb-1">
+                            Enable Learning Center Access
+                          </label>
+                          <p className="text-sm text-gray-600">
+                            Allow this partner to access training courses and earn certificates
+                          </p>
+                        </div>
+                        <label className="relative inline-flex items-center cursor-pointer ml-4">
+                          <input
+                            type="checkbox"
+                            id="learning_enabled"
+                            name="learning_enabled"
+                            checked={formData.learning_enabled}
                             onChange={handleInputChange}
                             className="sr-only peer"
                           />

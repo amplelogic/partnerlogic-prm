@@ -9,7 +9,7 @@ import {
   ArrowLeft, Edit2, Mail, Phone, Building2, Calendar, 
   Award, Percent, DollarSign, BarChart3, Headphones,
   CheckCircle, Clock, XCircle, User, TrendingUp, FileText,
-  AlertCircle, Shield
+  AlertCircle, Shield, BookOpen 
 } from 'lucide-react'
 
 export default function PartnerViewPage({ params }) {
@@ -394,6 +394,21 @@ export default function PartnerViewPage({ params }) {
                         : 'bg-gray-100 text-gray-800'
                     }`}>
                       {partner.organization?.mdf_enabled ? 'Enabled' : 'Disabled'}
+                    </span>
+                  </div>
+                </div>
+                <div className="flex items-center space-x-3">
+                  <div className="w-10 h-10 bg-emerald-100 rounded-lg flex items-center justify-center">
+                    <BookOpen className="h-5 w-5 text-emerald-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm text-gray-600">Learning Access</p>
+                    <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+                      partner.organization?.learning_enabled 
+                        ? 'bg-green-100 text-green-800' 
+                        : 'bg-gray-100 text-gray-800'
+                    }`}>
+                      {partner.organization?.learning_enabled ? 'Enabled' : 'Disabled'}
                     </span>
                   </div>
                 </div>
