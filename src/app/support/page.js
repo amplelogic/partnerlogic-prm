@@ -25,61 +25,62 @@ export default function SupportDashboardPage() {
     loadDashboardData()
   }, [])
 
-  const loadDashboardData = async () => {
-    try {
-      setLoading(true)
+const loadDashboardData = async () => {
+  try {
+    setLoading(true)
 
-      // Get current support user
-      const { data: { user } } = await supabase.auth.getUser()
-      if (!user) return
+    // Get current support user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
 
-      const { data: supportUserData } = await supabase
-        .from('support_users')
-        .select('*')
-        .eq('auth_user_id', user.id)
-        .eq('active', true)
-        .single()
+    const { data: supportUserData } = await supabase
+      .from('support_users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .eq('active', true)
+      .single()
 
-      if (!supportUserData) return
-      setSupportUser(supportUserData)
+    if (!supportUserData) return
+    setSupportUser(supportUserData)
 
-      // Get tickets of this support type
-      const { data: ticketsData, error: ticketsError } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          partner:partners(
-            id,
-            first_name,
-            last_name,
-            organization:organizations(name, tier)
-          )
-        `)
-        .eq('type', supportUserData.support_type)
-        .order('created_at', { ascending: false })
+    // FIXED: Proper Supabase join syntax
+    const { data: ticketsData, error: ticketsError } = await supabase
+      .from('support_tickets')
+      .select(`
+        *,
+        partners!partner_id (
+          id,
+          first_name,
+          last_name,
+          company_name,
+          email
+        )
+      `)
+      .eq('type', supportUserData.support_type)
+      .order('created_at', { ascending: false })
 
-      if (ticketsError) {
-        console.error('Tickets error:', ticketsError)
-      }
-
-      const tickets = ticketsData || []
-
-      // Calculate stats
-      setStats({
-        totalTickets: tickets.length,
-        openTickets: tickets.filter(t => t.status === 'open').length,
-        inProgressTickets: tickets.filter(t => t.status === 'in_progress').length,
-        resolvedTickets: tickets.filter(t => t.status === 'resolved').length
-      })
-
-      setRecentTickets(tickets.slice(0, 5))
-
-    } catch (error) {
-      console.error('Error loading dashboard data:', error)
-    } finally {
-      setLoading(false)
+    if (ticketsError) {
+      console.error('Tickets error:', ticketsError)
     }
+
+    const tickets = ticketsData || []
+
+    // Calculate stats
+    setStats({
+      totalTickets: tickets.length,
+      openTickets: tickets.filter(t => t.status === 'open').length,
+      inProgressTickets: tickets.filter(t => t.status === 'in_progress').length,
+      resolvedTickets: tickets.filter(t => t.status === 'resolved').length
+    })
+
+    setRecentTickets(tickets.slice(0, 5))
+
+  } catch (error) {
+    console.error('Error loading dashboard data:', error)
+  } finally {
+    setLoading(false)
   }
+}
 
   const getStatusColor = (status) => {
     switch (status) {

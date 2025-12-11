@@ -60,32 +60,36 @@ export default function SupportTicketsPage() {
     }
   }
 
-  const loadTickets = async () => {
-    try {
-      setLoading(true)
+// From src/app/support/tickets/page.js
 
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          partners (
-            id,
-            company_name,
-            email,
-            contact_person
-          )
-        `)
-        .eq('type', supportUser.support_type)  // FIXED: Changed from ticket_type to type
-        .order('created_at', { ascending: false })
+const loadTickets = async () => {
+  try {
+    setLoading(true)
 
-      if (error) throw error
-      setTickets(data || [])
-    } catch (error) {
-      console.error('Error loading tickets:', error)
-    } finally {
-      setLoading(false)
-    }
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select(`
+        *,
+        partners!partner_id (
+          id,
+          company_name,
+          email,
+          contact_person,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('type', supportUser.support_type)
+      .order('created_at', { ascending: false })
+
+    if (error) throw error
+    setTickets(data || [])
+  } catch (error) {
+    console.error('Error loading tickets:', error)
+  } finally {
+    setLoading(false)
   }
+}
 
   const filteredTickets = tickets.filter(ticket => {
     const matchesSearch = 

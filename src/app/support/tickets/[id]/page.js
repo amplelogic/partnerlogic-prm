@@ -43,38 +43,40 @@ export default function SupportTicketDetailPage() {
     }
   }, [params?.id])
 
-  const loadTicket = async () => {
-    try {
-      setLoading(true)
+const loadTicket = async () => {
+  try {
+    setLoading(true)
 
-      const { data, error } = await supabase
-        .from('support_tickets')
-        .select(`
-          *,
-          partners (
-            id,
-            company_name,
-            email,
-            phone,
-            contact_person,
-            organization
-          )
-        `)
-        .eq('id', params.id)
-        .single()
+    const { data, error } = await supabase
+      .from('support_tickets')
+      .select(`
+        *,
+        partners!partner_id (
+          id,
+          company_name,
+          email,
+          phone,
+          contact_person,
+          organization,
+          first_name,
+          last_name
+        )
+      `)
+      .eq('id', params.id)
+      .single()
 
-      if (error) throw error
+    if (error) throw error
 
-      setTicket(data)
-      setSelectedStatus(data.status)
+    setTicket(data)
+    setSelectedStatus(data.status)
 
-    } catch (error) {
-      console.error('Error loading ticket:', error)
-      setError('Failed to load ticket details')
-    } finally {
-      setLoading(false)
-    }
+  } catch (error) {
+    console.error('Error loading ticket:', error)
+    setError('Failed to load ticket details')
+  } finally {
+    setLoading(false)
   }
+}
 
   const handleStatusUpdate = async () => {
     if (selectedStatus === ticket.status) {
