@@ -29,7 +29,6 @@ const loadDashboardData = async () => {
   try {
     setLoading(true)
 
-    // Get current support user
     const { data: { user } } = await supabase.auth.getUser()
     if (!user) return
 
@@ -43,21 +42,28 @@ const loadDashboardData = async () => {
     if (!supportUserData) return
     setSupportUser(supportUserData)
 
-    // FIXED: Proper Supabase join syntax
+    // FIXED: Nested join to get organization name
     const { data: ticketsData, error: ticketsError } = await supabase
       .from('support_tickets')
       .select(`
         *,
-        partners!partner_id (
+        partner:partners(
           id,
           first_name,
           last_name,
-          company_name,
-          email
+          email,
+          phone,
+          organization:organizations(
+            id,
+            name
+          )
         )
       `)
       .eq('type', supportUserData.support_type)
       .order('created_at', { ascending: false })
+
+    console.log('📋 Tickets loaded:', ticketsData)
+    console.log('❌ Error:', ticketsError)
 
     if (ticketsError) {
       console.error('Tickets error:', ticketsError)
@@ -65,7 +71,6 @@ const loadDashboardData = async () => {
 
     const tickets = ticketsData || []
 
-    // Calculate stats
     setStats({
       totalTickets: tickets.length,
       openTickets: tickets.filter(t => t.status === 'open').length,
@@ -246,7 +251,7 @@ const loadDashboardData = async () => {
                         </div>
                         <div className="flex items-center">
                           <Building2 className="h-4 w-4 mr-1" />
-                          {ticket.partner?.organization?.name}
+                          {ticket.partner?.organization?.name || 'No Organization'}
                         </div>
                         <div>Created {new Date(ticket.created_at).toLocaleDateString()}</div>
                       </div>

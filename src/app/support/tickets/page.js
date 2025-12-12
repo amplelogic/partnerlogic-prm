@@ -70,17 +70,23 @@ const loadTickets = async () => {
       .from('support_tickets')
       .select(`
         *,
-        partners!partner_id (
+        partner:partners(
           id,
-          company_name,
-          email,
-          contact_person,
           first_name,
-          last_name
+          last_name,
+          email,
+          phone,
+          organization:organizations(
+            id,
+            name
+          )
         )
       `)
       .eq('type', supportUser.support_type)
       .order('created_at', { ascending: false })
+
+    console.log('📋 Tickets:', data)
+    console.log('❌ Error:', error)
 
     if (error) throw error
     setTickets(data || [])
@@ -91,17 +97,19 @@ const loadTickets = async () => {
   }
 }
 
-  const filteredTickets = tickets.filter(ticket => {
-    const matchesSearch = 
-      ticket.subject.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      ticket.partners?.company_name.toLowerCase().includes(searchTerm.toLowerCase())
+const filteredTickets = tickets.filter(ticket => {
+  const matchesSearch = 
+    ticket.subject?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket.description?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket.partner?.organization?.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket.partner?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    ticket.partner?.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
 
-    const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
-    const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
+  const matchesStatus = statusFilter === 'all' || ticket.status === statusFilter
+  const matchesPriority = priorityFilter === 'all' || ticket.priority === priorityFilter
 
-    return matchesSearch && matchesStatus && matchesPriority
-  })
+  return matchesSearch && matchesStatus && matchesPriority
+})
 
   const stats = {
     total: filteredTickets.length,
@@ -284,10 +292,10 @@ const loadTickets = async () => {
                             <Building2 className="h-5 w-5 text-gray-400 mr-2" />
                             <div>
                               <p className="text-sm font-medium text-gray-900">
-                                {ticket.partners?.company_name}
+                                {ticket.partner?.organization?.name || 'No Organization'}
                               </p>
                               <p className="text-sm text-gray-500">
-                                {ticket.partners?.contact_person}
+                                {ticket.partner?.first_name} {ticket.partner?.last_name}
                               </p>
                             </div>
                           </div>

@@ -51,15 +51,16 @@ const loadTicket = async () => {
       .from('support_tickets')
       .select(`
         *,
-        partners!partner_id (
+        partner:partners(
           id,
-          company_name,
+          first_name,
+          last_name,
           email,
           phone,
-          contact_person,
-          organization,
-          first_name,
-          last_name
+          organization:organizations(
+            id,
+            name
+          )
         )
       `)
       .eq('id', params.id)
@@ -331,44 +332,41 @@ const loadTicket = async () => {
                   Partner Information
                 </h3>
               </div>
-              <div className="p-6 space-y-4">
+             <div className="p-6 space-y-4">
                 <div>
                   <p className="text-sm font-medium text-gray-700">Company</p>
-                  <p className="text-sm text-gray-900 mt-1">{ticket.partners?.company_name}</p>
+                  <p className="text-sm text-gray-900 mt-1">
+                    {ticket.partner?.organization?.name || 'No Organization'}
+                  </p>
                 </div>
-
-                {ticket.partners?.organization && (
-                  <div>
-                    <p className="text-sm font-medium text-gray-700">Organization</p>
-                    <p className="text-sm text-gray-900 mt-1">{ticket.partners.organization}</p>
-                  </div>
-                )}
 
                 <div>
                   <p className="text-sm font-medium text-gray-700">Contact Person</p>
-                  <p className="text-sm text-gray-900 mt-1">{ticket.partners?.contact_person}</p>
+                  <p className="text-sm text-gray-900 mt-1">
+                    {ticket.partner?.first_name} {ticket.partner?.last_name}
+                  </p>
                 </div>
 
                 <div>
                   <p className="text-sm font-medium text-gray-700">Email</p>
-                  <a
-                    href={`mailto:${ticket.partners?.email}`}
+                  <a 
+                    href={`mailto:${ticket.partner?.email}`}
                     className="text-sm text-blue-600 hover:text-blue-700 mt-1 flex items-center"
                   >
                     <Mail className="h-4 w-4 mr-1" />
-                    {ticket.partners?.email}
+                    {ticket.partner?.email}
                   </a>
                 </div>
 
-                {ticket.partners?.phone && (
+                {ticket.partner?.phone && (
                   <div>
                     <p className="text-sm font-medium text-gray-700">Phone</p>
-                    <a
-                      href={`tel:${ticket.partners.phone}`}
+                    <a 
+                      href={`tel:${ticket.partner.phone}`}
                       className="text-sm text-blue-600 hover:text-blue-700 mt-1 flex items-center"
                     >
                       <Phone className="h-4 w-4 mr-1" />
-                      {ticket.partners.phone}
+                      {ticket.partner.phone}
                     </a>
                   </div>
                 )}
