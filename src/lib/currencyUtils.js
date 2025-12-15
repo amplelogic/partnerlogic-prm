@@ -12,6 +12,7 @@ export const CURRENCIES = {
   AUD: { code: 'AUD', symbol: 'A$', name: 'Australian Dollar' },
   CAD: { code: 'CAD', symbol: 'C$', name: 'Canadian Dollar' },
   CNY: { code: 'CNY', symbol: '¥', name: 'Chinese Yuan' },
+  IDR: { code: 'IDR', symbol: 'Rp', name: 'Indonesian Rupiah' },
   SGD: { code: 'SGD', symbol: 'S$', name: 'Singapore Dollar' },
   HKD: { code: 'HKD', symbol: 'HK$', name: 'Hong Kong Dollar' },
   MYR: { code: 'MYR', symbol: 'RM', name: 'Malaysian Ringgit' },

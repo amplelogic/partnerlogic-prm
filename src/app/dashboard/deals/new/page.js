@@ -1,11 +1,12 @@
 // src/app/dashboard/deals/new/page.js
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, User, Mail, Building2, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react'
+import { getCurrencyOptions } from '@/lib/currencyUtils'
 
 export default function NewDealPage() {
   const [partner, setPartner] = useState(null)
@@ -54,15 +55,7 @@ export default function NewDealPage() {
     { value: 'accounts', label: 'Account Management' }
   ]
 
-  const currencies = [
-    { value: 'USD', label: 'USD ($)', symbol: '$' },
-    { value: 'EUR', label: 'EUR (€)', symbol: '€' },
-    { value: 'GBP', label: 'GBP (£)', symbol: '£' },
-    { value: 'INR', label: 'INR (₹)', symbol: '₹' },
-    { value: 'AUD', label: 'AUD (A$)', symbol: 'A$' },
-    { value: 'CAD', label: 'CAD (C$)', symbol: 'C$' },
-    { value: 'JPY', label: 'JPY (¥)', symbol: '¥' }
-  ]
+  const currencyOptions = useMemo(() => getCurrencyOptions(), [])
 
   useEffect(() => {
     loadPartner()
@@ -448,7 +441,7 @@ if (emailError) {
                     onChange={handleInputChange}
                     className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   >
-                    {currencies.map(curr => (
+                    {currencyOptions.map(curr => (
                       <option key={curr.value} value={curr.value}>
                         {curr.label}
                       </option>
