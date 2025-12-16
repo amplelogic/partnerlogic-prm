@@ -1,13 +1,40 @@
 // src/components/TierProgress.js
 'use client'
 
+import { useState, useEffect } from 'react'
 import { TrendingUp, Award, Target, Zap } from 'lucide-react'
-import { calculateTierProgress, getTierColor, getTierBadgeColor, TIER_THRESHOLDS } from '@/lib/tierSystem'
+import { calculateTierProgress, getTierColor, getTierBadgeColor } from '@/lib/tierSystem'
 
 export default function TierProgress({ currentTier, totalRevenue }) {
-  const progressData = calculateTierProgress(totalRevenue, currentTier)
+  const [progressData, setProgressData] = useState({
+    progress: 0,
+    progressInTier: 0,
+    nextTier: null,
+    amountToNext: 0,
+    currentTierRevenue: 0,
+    totalRevenue: 0,
+    tierRange: 0
+  })
+  const [loading, setLoading] = useState(true)
+  
   const tierColor = getTierColor(currentTier)
   const badgeColor = getTierBadgeColor(currentTier)
+
+  useEffect(() => {
+    const loadProgress = async () => {
+      try {
+        setLoading(true)
+        const data = await calculateTierProgress(totalRevenue, currentTier)
+        setProgressData(data)
+      } catch (error) {
+        console.error('Error calculating tier progress:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    loadProgress()
+  }, [totalRevenue, currentTier])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -15,6 +42,30 @@ export default function TierProgress({ currentTier, totalRevenue }) {
       currency: 'USD',
       minimumFractionDigits: 0
     }).format(amount)
+  }
+
+  if (loading) {
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <div className="animate-pulse">
+          <div className="flex items-center justify-between mb-6">
+            <div className="flex items-center space-x-3">
+              <div className="w-12 h-12 bg-gray-200 rounded-xl"></div>
+              <div>
+                <div className="h-5 bg-gray-200 rounded w-32 mb-2"></div>
+                <div className="h-4 bg-gray-200 rounded w-24"></div>
+              </div>
+            </div>
+            <div className="h-8 w-20 bg-gray-200 rounded-full"></div>
+          </div>
+          <div className="h-4 bg-gray-200 rounded mb-8"></div>
+          <div className="grid grid-cols-2 gap-4">
+            <div className="h-24 bg-gray-200 rounded-xl"></div>
+            <div className="h-24 bg-gray-200 rounded-xl"></div>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (

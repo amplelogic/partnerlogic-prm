@@ -76,6 +76,7 @@ export default function AdminLayout({ children }) {
     { name: 'Dashboard', href: '/admin', icon: Home, current: pathname === '/admin' },
     { name: 'All Deals', href: '/admin/deals', icon: BarChart3, current: pathname.startsWith('/admin/deals') },
     { name: 'Partners', href: '/admin/partners', icon: Building2, current: pathname.startsWith('/admin/partners') },
+    { name: 'Tier Management', href: '/admin/tier-management', icon: TrendingUp, current: pathname.startsWith('/admin/tier-management') },
     { name: 'Admins', href: '/admin/admins', icon: Shield, current: pathname.startsWith('/admin/admins') },
     { name: 'Partner Managers', href: '/admin/partner-managers', icon: Users, current: pathname.startsWith('/admin/partner-managers') },
     { name: 'Support Users', href: '/admin/support-users', icon: Headphones, current: pathname.startsWith('/admin/support-users') },
