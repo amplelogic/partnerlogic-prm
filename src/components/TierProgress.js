@@ -3,6 +3,7 @@
 
 import { useState, useEffect } from 'react'
 import { TrendingUp, Award, Target, Zap } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 import { calculateTierProgress, getTierColor, getTierBadgeColor } from '@/lib/tierSystem'
 
 export default function TierProgress({ currentTier, totalRevenue }) {
@@ -15,7 +16,9 @@ export default function TierProgress({ currentTier, totalRevenue }) {
     totalRevenue: 0,
     tierRange: 0
   })
+  const [tierLabel, setTierLabel] = useState('')
   const [loading, setLoading] = useState(true)
+  const supabase = createClient()
   
   const tierColor = getTierColor(currentTier)
   const badgeColor = getTierBadgeColor(currentTier)
@@ -24,6 +27,18 @@ export default function TierProgress({ currentTier, totalRevenue }) {
     const loadProgress = async () => {
       try {
         setLoading(true)
+        
+        // Fetch tier label from tier_settings
+        const { data: tierData } = await supabase
+          .from('tier_settings')
+          .select('tier_label')
+          .eq('tier_name', currentTier)
+          .single()
+        
+        if (tierData) {
+          setTierLabel(tierData.tier_label)
+        }
+        
         const data = await calculateTierProgress(totalRevenue, currentTier)
         setProgressData(data)
       } catch (error) {
@@ -34,7 +49,7 @@ export default function TierProgress({ currentTier, totalRevenue }) {
     }
 
     loadProgress()
-  }, [totalRevenue, currentTier])
+  }, [totalRevenue, currentTier, supabase])
 
   const formatCurrency = (amount) => {
     return new Intl.NumberFormat('en-US', {
@@ -82,7 +97,7 @@ export default function TierProgress({ currentTier, totalRevenue }) {
           </div>
         </div>
         <span className={`inline-flex items-center px-3 py-1.5 rounded-full text-sm font-medium ${badgeColor}`}>
-          {currentTier.charAt(0).toUpperCase() + currentTier.slice(1)}
+          {tierLabel}
         </span>
       </div>
 
