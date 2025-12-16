@@ -1,7 +1,7 @@
 // src/app/dashboard/deals/new/page.js
 'use client'
 
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -14,6 +14,7 @@ export default function NewDealPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
+  const [currencyOptions, setCurrencyOptions] = useState([])
   
   const [formData, setFormData] = useState({
   customer_name: '',
@@ -55,11 +56,21 @@ export default function NewDealPage() {
     { value: 'accounts', label: 'Account Management' }
   ]
 
-  const currencyOptions = useMemo(() => getCurrencyOptions(), [])
-
   useEffect(() => {
     loadPartner()
+    loadCurrencies()
   }, [])
+
+  const loadCurrencies = async () => {
+    try {
+      const options = await getCurrencyOptions()
+      setCurrencyOptions(options)
+    } catch (error) {
+      console.error('Error loading currencies:', error)
+      // Fallback to USD if currencies fail to load
+      setCurrencyOptions([{ value: 'USD', label: 'USD - US Dollar ($)' }])
+    }
+  }
 
   const loadPartner = async () => {
     try {
@@ -175,8 +186,7 @@ const handleSubmit = async (e) => {
           description: `Deal registered by ${partner.first_name} ${partner.last_name}`
         }])
 
-      // ✅ NEW: Send email notification to admin
-      // Replace the email sending block (around line 289) with:
+      // Send email notification to admin
 try {
   const { data: adminSettings } = await supabase
     .from('admin_settings')

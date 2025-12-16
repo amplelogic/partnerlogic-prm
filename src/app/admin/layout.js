@@ -9,7 +9,7 @@ import {
   Users, BarChart3, FileText, Settings, Shield,
   Menu, X, LogOut, Bell, Search, Home, Building2,
   User, ChevronDown, BookOpen, Headphones,
-  TrendingUp, Package
+  TrendingUp, Package, DollarSign
 } from 'lucide-react'
 
 export default function AdminLayout({ children }) {
@@ -77,6 +77,7 @@ export default function AdminLayout({ children }) {
     { name: 'All Deals', href: '/admin/deals', icon: BarChart3, current: pathname.startsWith('/admin/deals') },
     { name: 'Partners', href: '/admin/partners', icon: Building2, current: pathname.startsWith('/admin/partners') },
     { name: 'Tier Management', href: '/admin/tier-management', icon: TrendingUp, current: pathname.startsWith('/admin/tier-management') },
+    { name: 'Currencies', href: '/admin/currencies', icon: DollarSign, current: pathname.startsWith('/admin/currencies') },
     { name: 'Admins', href: '/admin/admins', icon: Shield, current: pathname.startsWith('/admin/admins') },
     { name: 'Partner Managers', href: '/admin/partner-managers', icon: Users, current: pathname.startsWith('/admin/partner-managers') },
     { name: 'Support Users', href: '/admin/support-users', icon: Headphones, current: pathname.startsWith('/admin/support-users') },
