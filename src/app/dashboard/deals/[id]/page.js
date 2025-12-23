@@ -1,7 +1,7 @@
 // src/app/dashboard/deals/[id]/page.js
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import InvoiceGenerator from '@/components/InvoiceGenerator'
@@ -16,6 +16,7 @@ import {
 import { CURRENCIES } from '@/lib/currencyUtils'
 
 export default function DealDetailsPage({ params }) {
+  const unwrappedParams = use(params)
   const [deal, setDeal] = useState(null)
   const [activities, setActivities] = useState([])
   const [partner, setPartner] = useState(null)
@@ -48,10 +49,10 @@ export default function DealDetailsPage({ params }) {
 ]
 
   useEffect(() => {
-    if (params.id) {
+    if (unwrappedParams.id) {
       loadDealDetails()
     }
-  }, [params.id])
+  }, [unwrappedParams.id])
 
   const loadDealDetails = async () => {
     try {
@@ -80,7 +81,7 @@ export default function DealDetailsPage({ params }) {
         const { data: dealData, error: dealError } = await supabase
           .from('deals')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', unwrappedParams.id)
           .eq('partner_id', partnerData.id)
           .single()
 
@@ -100,7 +101,7 @@ export default function DealDetailsPage({ params }) {
         const { data: activitiesData } = await supabase
           .from('deal_activities')
           .select('*')
-          .eq('deal_id', params.id)
+          .eq('deal_id', unwrappedParams.id)
           .order('created_at', { ascending: false })
 
         setActivities(activitiesData || [])
