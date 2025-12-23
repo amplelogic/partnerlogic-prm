@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Search, Filter, Eye, Edit2, Users, Building2,
   Mail, Calendar, ChevronDown, Award, Percent,
-  DollarSign, BarChart3, TrendingUp, Plus, User
+  DollarSign, BarChart3, TrendingUp, Plus, User, Trash2
 } from 'lucide-react'
 
 export default function AdminPartnersPage() {
@@ -20,6 +20,7 @@ export default function AdminPartnersPage() {
   const [sortBy, setSortBy] = useState('created_at')
   const [sortOrder, setSortOrder] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
+  const [deleting, setDeleting] = useState(null)
 
   const supabase = createClient()
 
@@ -67,6 +68,48 @@ export default function AdminPartnersPage() {
       console.error('Error loading partners:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const handleDelete = async (partnerId) => {
+    if (!confirm('Are you sure you want to delete this partner? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(partnerId)
+      
+      // Get partner to find auth_user_id and organization
+      const partner = partners.find(p => p.id === partnerId)
+      
+      if (!partner) {
+        throw new Error('Partner not found')
+      }
+
+      // Delete partner record
+      const { error: partnerError } = await supabase
+        .from('partners')
+        .delete()
+        .eq('id', partnerId)
+
+      if (partnerError) throw partnerError
+
+      // Delete auth user
+      if (partner.auth_user_id) {
+        const { error: authError } = await supabase.auth.admin.deleteUser(partner.auth_user_id)
+        if (authError) {
+          console.error('Error deleting auth user:', authError)
+        }
+      }
+
+      // Remove from local state
+      setPartners(partners.filter(p => p.id !== partnerId))
+      
+    } catch (error) {
+      console.error('Error deleting partner:', error)
+      alert('Failed to delete partner. Please try again.')
+    } finally {
+      setDeleting(null)
     }
   }
 
@@ -425,6 +468,20 @@ export default function AdminPartnersPage() {
                         <Edit2 className="h-4 w-4 mr-1" />
                         Edit
                       </Link>
+                      <button
+                        onClick={() => handleDelete(partner.id)}
+                        disabled={deleting === partner.id}
+                        className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                      >
+                        {deleting === partner.id ? (
+                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                        ) : (
+                          <>
+                            <Trash2 className="h-4 w-4 mr-1" />
+                            Delete
+                          </>
+                        )}
+                      </button>
                     </div>
                   </div>
                 </div>

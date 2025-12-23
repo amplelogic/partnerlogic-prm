@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { 
   Search, Eye, Edit2, Users, Mail, Calendar, Plus,
-  CheckCircle, Clock, XCircle
+  CheckCircle, Clock, XCircle, Trash2
 } from 'lucide-react'
 
 export default function PartnerManagersPage() {
@@ -13,6 +13,7 @@ export default function PartnerManagersPage() {
   const [filteredManagers, setFilteredManagers] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
+  const [deleting, setDeleting] = useState(null)
   const supabase = createClient()
 
   useEffect(() => {
@@ -54,6 +55,48 @@ export default function PartnerManagersPage() {
       manager.email?.toLowerCase().includes(searchTerm.toLowerCase())
     )
     setFilteredManagers(filtered)
+  }
+
+  const handleDelete = async (managerId) => {
+    if (!confirm('Are you sure you want to delete this partner manager? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(managerId)
+      
+      // Get manager to find auth_user_id
+      const manager = managers.find(m => m.id === managerId)
+      
+      if (!manager) {
+        throw new Error('Partner manager not found')
+      }
+
+      // Delete partner manager record
+      const { error: managerError } = await supabase
+        .from('partner_managers')
+        .delete()
+        .eq('id', managerId)
+
+      if (managerError) throw managerError
+
+      // Delete auth user
+      if (manager.auth_user_id) {
+        const { error: authError } = await supabase.auth.admin.deleteUser(manager.auth_user_id)
+        if (authError) {
+          console.error('Error deleting auth user:', authError)
+        }
+      }
+
+      // Remove from local state
+      setManagers(managers.filter(m => m.id !== managerId))
+      
+    } catch (error) {
+      console.error('Error deleting partner manager:', error)
+      alert('Failed to delete partner manager. Please try again.')
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const getStatusColor = (status) => {
@@ -173,11 +216,32 @@ export default function PartnerManagersPage() {
                       <div className="flex items-center space-x-2 ml-4">
                         <Link
                           href={`/admin/partner-managers/${manager.id}`}
-                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Link>
+                        <Link
+                          href={`/admin/partner-managers/${manager.id}/edit`}
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
+                        >
+                          <Edit2 className="h-4 w-4 mr-1" />
+                          Edit
+                        </Link>
+                        <button
+                          onClick={() => handleDelete(manager.id)}
+                          disabled={deleting === manager.id}
+                          className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                        >
+                          {deleting === manager.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
