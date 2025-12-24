@@ -56,9 +56,33 @@ export default function ProductMultiSelect({ selectedProducts = [], onChange, di
     onChange(selectedProducts.filter(p => p.id !== productId))
   }
 
+  const handleSelectAll = () => {
+    const allProductIds = filteredProducts.map(p => p.id)
+    const allSelected = filteredProducts.every(product => 
+      selectedProducts.some(sp => sp.id === product.id)
+    )
+
+    if (allSelected) {
+      // Deselect all filtered products
+      onChange(selectedProducts.filter(sp => 
+        !allProductIds.includes(sp.id)
+      ))
+    } else {
+      // Select all filtered products (merge with existing)
+      const newProducts = filteredProducts.filter(product => 
+        !selectedProducts.some(sp => sp.id === product.id)
+      )
+      onChange([...selectedProducts, ...newProducts])
+    }
+  }
+
   const filteredProducts = products.filter(product =>
     product.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     product.short_name.toLowerCase().includes(searchTerm.toLowerCase())
+  )
+
+  const allFilteredSelected = filteredProducts.length > 0 && filteredProducts.every(product =>
+    selectedProducts.some(sp => sp.id === product.id)
   )
 
   return (
@@ -116,6 +140,29 @@ export default function ProductMultiSelect({ selectedProducts = [], onChange, di
               onClick={(e) => e.stopPropagation()}
             />
           </div>
+
+          {/* Select All */}
+          {filteredProducts.length > 0 && (
+            <div className="p-2 border-b border-gray-200 bg-gray-50">
+              <button
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation()
+                  handleSelectAll()
+                }}
+                className="w-full px-3 py-2 text-sm font-medium text-left rounded-md hover:bg-gray-100 transition-colors flex items-center justify-between"
+              >
+                <span className="text-gray-700">
+                  {allFilteredSelected ? 'Deselect All' : 'Select All'}
+                </span>
+                {allFilteredSelected && (
+                  <div className="w-5 h-5 bg-blue-600 rounded flex items-center justify-center">
+                    <Check className="h-3 w-3 text-white" />
+                  </div>
+                )}
+              </button>
+            </div>
+          )}
 
           {/* Product List */}
           <div className="max-h-48 overflow-y-auto">
