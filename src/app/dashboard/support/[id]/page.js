@@ -1,7 +1,7 @@
 // src/app/dashboard/support/[id]/page.js
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 
 export default function SupportTicketDetailsPage({ params }) {
+  const unwrappedParams = use(params)
   const [ticket, setTicket] = useState(null)
   const [partner, setPartner] = useState(null)
   const [relatedDeal, setRelatedDeal] = useState(null)
@@ -57,10 +58,10 @@ export default function SupportTicketDetailsPage({ params }) {
   ]
 
   useEffect(() => {
-    if (params.id) {
+    if (unwrappedParams.id) {
       loadTicketDetails()
     }
-  }, [params.id])
+  }, [unwrappedParams.id])
 
   const loadTicketDetails = async () => {
     try {
@@ -89,7 +90,7 @@ export default function SupportTicketDetailsPage({ params }) {
         const { data: ticketData, error: ticketError } = await supabase
           .from('support_tickets')
           .select('*')
-          .eq('id', params.id)
+          .eq('id', unwrappedParams.id)
           .eq('partner_id', partnerData.id)
           .single()
 
@@ -266,6 +267,22 @@ export default function SupportTicketDetailsPage({ params }) {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
           {/* Main Content */}
           <div className="lg:col-span-2 space-y-6">
+            {/* Description Section */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+              <div className="p-6 border-b border-gray-200">
+                <h2 className="text-lg font-semibold text-gray-900">Description</h2>
+              </div>
+              <div className="p-6">
+                {ticket.description ? (
+                  <div className="prose prose-sm max-w-none text-gray-700">
+                    <p className="whitespace-pre-wrap">{ticket.description}</p>
+                  </div>
+                ) : (
+                  <p className="text-gray-500 italic">No description provided.</p>
+                )}
+              </div>
+            </div>
+
             {/* Ticket Details */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
