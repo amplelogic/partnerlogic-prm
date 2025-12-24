@@ -11,7 +11,7 @@ import Link from 'next/link'
 import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
 
 
-// PARTNER MANAGER STAGES - Only up to closed_lost (same as partner view)
+// PARTNER MANAGER STAGES - Same as partner view
 const PARTNER_MANAGER_STAGES = [
   { id: 'new_deal', label: 'New Deal', color: 'bg-gray-100 border-gray-300' },
   { id: 'need_analysis', label: 'Need Analysis', color: 'bg-blue-100 border-blue-300' },

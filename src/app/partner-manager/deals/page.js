@@ -20,28 +20,33 @@ export default function AllDealsPage() {
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [stageFilter, setStageFilter] = useState('all')
+  const [partnerFilter, setPartnerFilter] = useState('all')
+  const [sortBy, setSortBy] = useState('created_at')
+  const [sortOrder, setSortOrder] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
+  const [partners, setPartners] = useState([])
   const [viewMode, setViewMode] = useState('kanban') // 'list' or 'kanban'
 
   const supabase = createClient()
 
   const stages = [
-    { value: 'all', label: 'All Stages' },
-    { value: 'lead', label: 'Lead' },
-    { value: 'qualified', label: 'Qualified' },
-    { value: 'proposal', label: 'Proposal' },
-    { value: 'negotiation', label: 'Negotiation' },
-    { value: 'closed_won', label: 'Closed Won' },
-    { value: 'closed_lost', label: 'Closed Lost' }
+    { value: 'all', label: 'All Stages', color: 'bg-gray-100 text-gray-800' },
+    { value: 'new_deal', label: 'New Deal', color: 'bg-gray-100 text-gray-800' },
+    { value: 'need_analysis', label: 'Need Analysis', color: 'bg-blue-100 text-blue-800' },
+    { value: 'proposal', label: 'Proposal', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'negotiation', label: 'Negotiation', color: 'bg-purple-100 text-purple-800' },
+    { value: 'closed_won', label: 'Closed Won', color: 'bg-green-100 text-green-800' },
+    { value: 'closed_lost', label: 'Closed Lost', color: 'bg-red-100 text-red-800' }
   ]
 
   useEffect(() => {
     loadDeals()
+    loadPartners()
   }, [])
 
   useEffect(() => {
-    filterDeals()
-  }, [deals, searchTerm, stageFilter])
+    filterAndSortDeals()
+  }, [deals, searchTerm, stageFilter, partnerFilter, sortBy, sortOrder])
 
   const loadDeals = async () => {
     try {
@@ -98,21 +103,82 @@ export default function AllDealsPage() {
     }
   }
 
-  const filterDeals = () => {
+  const loadPartners = async () => {
+    try {
+      // Get current partner manager
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+
+      const { data: managerData } = await supabase
+        .from('partner_managers')
+        .select('*')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!managerData) return
+
+      // Get partners assigned to this manager
+      const { data: partnersData } = await supabase
+        .from('partners')
+        .select(`
+          id,
+          first_name,
+          last_name,
+          organization:organizations(name)
+        `)
+        .eq('partner_manager_id', managerData.id)
+        .order('first_name', { ascending: true })
+
+      setPartners(partnersData || [])
+    } catch (error) {
+      console.error('Error loading partners:', error)
+    }
+  }
+
+  const filterAndSortDeals = () => {
     let filtered = [...deals]
 
+    // Apply search filter
     if (searchTerm) {
       filtered = filtered.filter(deal =>
         deal.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.customer_company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        deal.customer_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         deal.partners?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        deal.partners?.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+        deal.partners?.last_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        deal.partners?.organization?.name?.toLowerCase().includes(searchTerm.toLowerCase())
       )
     }
 
+    // Apply stage filter
     if (stageFilter !== 'all') {
       filtered = filtered.filter(deal => deal.stage === stageFilter)
     }
+
+    // Apply partner filter
+    if (partnerFilter !== 'all') {
+      filtered = filtered.filter(deal => deal.partner_id === partnerFilter)
+    }
+
+    // Apply sorting
+    filtered.sort((a, b) => {
+      let aValue = a[sortBy]
+      let bValue = b[sortBy]
+
+      if (sortBy === 'deal_value') {
+        aValue = aValue || 0
+        bValue = bValue || 0
+      }
+
+      if (sortBy === 'created_at' || sortBy === 'updated_at') {
+        aValue = new Date(aValue)
+        bValue = new Date(bValue)
+      }
+
+      if (aValue < bValue) return sortOrder === 'asc' ? -1 : 1
+      if (aValue > bValue) return sortOrder === 'asc' ? 1 : -1
+      return 0
+    })
 
     setFilteredDeals(filtered)
   }
@@ -130,15 +196,8 @@ export default function AllDealsPage() {
 }
 
   const getStageColor = (stage) => {
-    switch (stage) {
-      case 'lead': return 'bg-gray-100 text-gray-800'
-      case 'qualified': return 'bg-blue-100 text-blue-800'
-      case 'proposal': return 'bg-yellow-100 text-yellow-800'
-      case 'negotiation': return 'bg-purple-100 text-purple-800'
-      case 'closed_won': return 'bg-green-100 text-green-800'
-      case 'closed_lost': return 'bg-red-100 text-red-800'
-      default: return 'bg-gray-100 text-gray-800'
-    }
+    const stageConfig = stages.find(s => s.value === stage)
+    return stageConfig ? stageConfig.color : 'bg-gray-100 text-gray-800'
   }
 
   const calculateStats = () => {
@@ -311,15 +370,8 @@ export default function AllDealsPage() {
           </div>
         </div>
 
-        {/* Kanban or List View */}
-        {viewMode === 'kanban' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
-          </div>
-        ) : (
-          <>
-            {/* Filters and Search for List View */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        {/* Filters and Search */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                   <div className="relative flex-1 max-w-lg">
@@ -328,16 +380,16 @@ export default function AllDealsPage() {
                     </div>
                     <input
                       type="text"
-                      placeholder="Search by customer, company, or partner..."
+                      placeholder="Search by customer, company, partner, or email..."
                       value={searchTerm}
                       onChange={(e) => setSearchTerm(e.target.value)}
-                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                      className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-lg leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-purple-500 focus:border-purple-500 sm:text-sm text-gray-900"
                     />
                   </div>
 
                   <button
                     onClick={() => setShowFilters(!showFilters)}
-                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50"
+                    className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                   >
                     <Filter className="h-4 w-4 mr-2" />
                     Filters
@@ -355,7 +407,7 @@ export default function AllDealsPage() {
                 </div>
 
                 {showFilters && (
-                  <div className="mt-6 grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="mt-6 grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
                         Stage
@@ -363,7 +415,7 @@ export default function AllDealsPage() {
                       <select
                         value={stageFilter}
                         onChange={(e) => setStageFilter(e.target.value)}
-                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg text-gray-900"
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
                       >
                         {stages.map(stage => (
                           <option key={stage.value} value={stage.value}>
@@ -372,11 +424,64 @@ export default function AllDealsPage() {
                         ))}
                       </select>
                     </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Partner
+                      </label>
+                      <select
+                        value={partnerFilter}
+                        onChange={(e) => setPartnerFilter(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                      >
+                        <option value="all">All Partners</option>
+                        {partners.map(partner => (
+                          <option key={partner.id} value={partner.id}>
+                            {partner.first_name} {partner.last_name} - {partner.organization?.name}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Sort By
+                      </label>
+                      <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value)}
+                        className="block w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500 text-gray-900"
+                      >
+                        <option value="created_at">Created Date</option>
+                        <option value="updated_at">Updated Date</option>
+                        <option value="deal_value">Deal Value</option>
+                        <option value="customer_name">Customer Name</option>
+                      </select>
+                    </div>
+
+                    <div>
+                      <label className="block text-sm font-medium text-gray-700 mb-2">
+                        Order
+                      </label>
+                      <button
+                        onClick={() => setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc')}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 hover:bg-gray-50"
+                      >
+                        {sortOrder === 'asc' ? '↑ Ascending' : '↓ Descending'}
+                      </button>
+                    </div>
                   </div>
                 )}
               </div>
-            </div>
+        </div>
 
+        {/* Kanban or List View */}
+        {viewMode === 'kanban' ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
+          </div>
+        ) : (
+          <>
             {/* Deals List */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
               {filteredDeals.length === 0 ? (
@@ -397,7 +502,7 @@ export default function AllDealsPage() {
                               {deal.customer_name}
                             </h3>
                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getStageColor(deal.stage)}`}>
-                              {deal.stage?.replace('_', ' ').replace(/\b\w/g, l => l.toUpperCase())}
+                              {stages.find(s => s.value === deal.stage)?.label || deal.stage}
                             </span>
                           </div>
                           

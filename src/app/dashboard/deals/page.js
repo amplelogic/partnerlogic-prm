@@ -354,15 +354,8 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
           </div>
         </div>
 
-        {/* Kanban or List View */}
-        {viewMode === 'kanban' ? (
-          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
-          </div>
-        ) : (
-          <>
-            {/* Filters and Search for List View */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        {/* Filters and Search */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
               <div className="p-6">
                 <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
                   <div className="relative flex-1 max-w-lg">
@@ -449,8 +442,15 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
                   </div>
                 )}
               </div>
-            </div>
+        </div>
 
+        {/* Kanban or List View */}
+        {viewMode === 'kanban' ? (
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
+          </div>
+        ) : (
+          <>
             {/* List View */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
               {filteredDeals.length === 0 ? (
