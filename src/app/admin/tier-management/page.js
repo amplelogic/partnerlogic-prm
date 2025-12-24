@@ -439,11 +439,11 @@ export default function TierManagementPage() {
                     </p>
                   </div>
 
-                  {/* Discount Percentage */}
+                  {/* Commission Percentage */}
                   <div>
                     <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
                       <Percent className="h-4 w-4 mr-1" />
-                      Discount Percentage
+                      Commission
                     </label>
                     <input
                       type="number"
@@ -455,7 +455,7 @@ export default function TierManagementPage() {
                       max="100"
                       step="0.5"
                     />
-                    <p className="mt-1 text-xs text-gray-500">Partner discount rate (0-100%)</p>
+                    <p className="mt-1 text-xs text-gray-500">Partner commission rate (0-100%)</p>
                   </div>
 
                   {/* MDF Allocation */}

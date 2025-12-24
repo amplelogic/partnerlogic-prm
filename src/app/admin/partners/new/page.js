@@ -15,6 +15,8 @@ export default function NewPartnerPage() {
   const [selectedProducts, setSelectedProducts] = useState([])
   const [partnerManagers, setPartnerManagers] = useState([])
   const [loadingManagers, setLoadingManagers] = useState(false)
+  const [tiers, setTiers] = useState([])
+  const [loadingTiers, setLoadingTiers] = useState(true)
   
   const [formData, setFormData] = useState({
     // Partner Info
@@ -43,13 +45,6 @@ export default function NewPartnerPage() {
     { value: 'referral', label: 'Referral Partner' },
     { value: 'full_cycle', label: 'Full-Cycle Partner' },
     { value: 'white_label', label: 'White-Label Partner' }
-  ]
-
-  const tiers = [
-    { value: 'bronze', label: 'Bronze', discount: 5, mdf: 5000 },
-    { value: 'silver', label: 'Silver', discount: 10, mdf: 10000 },
-    { value: 'gold', label: 'Gold', discount: 15, mdf: 25000 },
-    { value: 'platinum', label: 'Platinum', discount: 20, mdf: 50000 }
   ]
 
 const handleInputChange = (e) => {
@@ -108,6 +103,7 @@ const handleInputChange = (e) => {
     }
     useEffect(() => {
       loadPartnerManagers()
+      loadTiers()
     }, [])
 
   const loadPartnerManagers = async () => {
@@ -125,6 +121,43 @@ const handleInputChange = (e) => {
       console.error('Error loading partner managers:', error)
     } finally {
       setLoadingManagers(false)
+    }
+  }
+
+  const loadTiers = async () => {
+    try {
+      setLoadingTiers(true)
+      const { data, error } = await supabase
+        .from('tier_settings')
+        .select('*')
+        .order('min_revenue', { ascending: true })
+
+      if (error) throw error
+      
+      // Transform data to match expected format
+      const transformedTiers = (data || []).map(tier => ({
+        value: tier.tier_name,
+        label: tier.tier_label,
+        discount: tier.discount_percentage,
+        mdf: tier.mdf_allocation
+      }))
+      
+      setTiers(transformedTiers)
+      
+      // Set default tier if tiers are loaded and no tier is selected
+      if (transformedTiers.length > 0 && !formData.tier) {
+        const defaultTier = transformedTiers[0]
+        setFormData(prev => ({
+          ...prev,
+          tier: defaultTier.value,
+          discount_percentage: defaultTier.discount,
+          mdf_allocation: 0
+        }))
+      }
+    } catch (error) {
+      console.error('Error loading tiers:', error)
+    } finally {
+      setLoadingTiers(false)
     }
   }
 
@@ -428,27 +461,19 @@ const handleInputChange = (e) => {
                         name="tier"
                         value={formData.tier}
                         onChange={handleInputChange}
+                        disabled={loadingTiers}
                         className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
                       >
-                        {tiers.map(tier => (
-                          <option key={tier.value} value={tier.value}>
-                            {tier.label} - {tier.discount}% discount{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
-                          </option>
-                        ))}
+                        {loadingTiers ? (
+                          <option>Loading tiers...</option>
+                        ) : (
+                          tiers.map(tier => (
+                            <option key={tier.value} value={tier.value}>
+                              {tier.label} - {tier.discount}% commission{formData.mdf_enabled ? `, $${tier.mdf.toLocaleString()} MDF` : ''}
+                            </option>
+                          ))
+                        )}
                       </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Discount %</label>
-                      <input
-                        type="number"
-                        name="discount_percentage"
-                        value={formData.discount_percentage}
-                        onChange={handleInputChange}
-                        min="0"
-                        max="100"
-                        className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg"
-                      />
                     </div>
 
                     {/* MDF Enabled Toggle */}
