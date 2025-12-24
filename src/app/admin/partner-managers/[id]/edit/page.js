@@ -6,7 +6,7 @@ import { useParams, useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   ArrowLeft, Save, AlertTriangle, Users, User,
-  Mail, Phone, CheckCircle, Clock, XCircle
+  Mail, Phone, CheckCircle, Clock, XCircle, Key, Eye, EyeOff
 } from 'lucide-react'
 
 export default function EditPartnerManagerPage() {
@@ -16,6 +16,11 @@ export default function EditPartnerManagerPage() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
+  const [newPassword, setNewPassword] = useState('')
+  const [confirmPassword, setConfirmPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
+  const [showConfirmPassword, setShowConfirmPassword] = useState(false)
+  const [passwordSuccess, setPasswordSuccess] = useState(false)
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -322,6 +327,165 @@ export default function EditPartnerManagerPage() {
                   />
                 </div>
               </div>
+            </div>
+          </div>
+
+          {/* Password Reset */}
+          <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+            <div className="px-6 py-4 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h2 className="text-lg font-semibold text-gray-900">Reset Password</h2>
+                  <p className="text-sm text-gray-600 mt-1">Set a new password for this partner manager</p>
+                </div>
+                {passwordSuccess && (
+                  <div className="flex items-center text-green-600">
+                    <CheckCircle className="h-5 w-5 mr-2" />
+                    <span className="text-sm font-medium">Password updated successfully</span>
+                  </div>
+                )}
+              </div>
+            </div>
+            <div className="p-6 space-y-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type={showPassword ? 'text' : 'password'}
+                      value={newPassword}
+                      onChange={(e) => {
+                        setNewPassword(e.target.value)
+                        setPasswordSuccess(false)
+                        if (errors.newPassword) {
+                          setErrors(prev => ({ ...prev, newPassword: '' }))
+                        }
+                      }}
+                      className={`block w-full pl-10 pr-10 py-2 border ${
+                        errors.newPassword ? 'border-red-300' : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
+                      placeholder="Enter new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.newPassword && (
+                    <p className="mt-1 text-sm text-red-600">{errors.newPassword}</p>
+                  )}
+                  <p className="mt-1 text-xs text-gray-500">Must be at least 6 characters</p>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Confirm New Password
+                  </label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                      <Key className="h-5 w-5 text-gray-400" />
+                    </div>
+                    <input
+                      type={showConfirmPassword ? 'text' : 'password'}
+                      value={confirmPassword}
+                      onChange={(e) => {
+                        setConfirmPassword(e.target.value)
+                        setPasswordSuccess(false)
+                        if (errors.confirmPassword) {
+                          setErrors(prev => ({ ...prev, confirmPassword: '' }))
+                        }
+                      }}
+                      className={`block w-full pl-10 pr-10 py-2 border ${
+                        errors.confirmPassword ? 'border-red-300' : 'border-gray-300'
+                      } rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-gray-900`}
+                      placeholder="Confirm new password"
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowConfirmPassword(!showConfirmPassword)}
+                      className="absolute inset-y-0 right-0 pr-3 flex items-center"
+                    >
+                      {showConfirmPassword ? (
+                        <EyeOff className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      ) : (
+                        <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
+                      )}
+                    </button>
+                  </div>
+                  {errors.confirmPassword && (
+                    <p className="mt-1 text-sm text-red-600">{errors.confirmPassword}</p>
+                  )}
+                </div>
+              </div>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  setErrors({})
+                  setPasswordSuccess(false)
+
+                  if (!newPassword) {
+                    setErrors({ newPassword: 'Password is required' })
+                    return
+                  }
+
+                  if (newPassword.length < 6) {
+                    setErrors({ newPassword: 'Password must be at least 6 characters' })
+                    return
+                  }
+
+                  if (newPassword !== confirmPassword) {
+                    setErrors({ confirmPassword: 'Passwords do not match' })
+                    return
+                  }
+
+                  try {
+                    // Call API route to update password
+                    const response = await fetch('/api/admin/update-password', {
+                      method: 'POST',
+                      headers: {
+                        'Content-Type': 'application/json',
+                      },
+                      body: JSON.stringify({
+                        userId: manager.auth_user_id,
+                        newPassword: newPassword
+                      })
+                    })
+
+                    const result = await response.json()
+
+                    if (!response.ok) {
+                      throw new Error(result.error || 'Failed to update password')
+                    }
+
+                    setPasswordSuccess(true)
+                    setNewPassword('')
+                    setConfirmPassword('')
+                    
+                    setTimeout(() => setPasswordSuccess(false), 5000)
+                  } catch (error) {
+                    console.error('Password update error:', error)
+                    setErrors({ submit: error.message || 'Failed to update password. Please try again.' })
+                  }
+                }}
+                disabled={!newPassword || !confirmPassword}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                <Key className="h-4 w-4 mr-2" />
+                Update Password
+              </button>
             </div>
           </div>
 
