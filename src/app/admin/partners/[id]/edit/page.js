@@ -818,6 +818,12 @@ const handleInputChange = (e) => {
                   }
 
                   try {
+                    // Get current admin user
+                    const { data: { user: currentUser } } = await supabase.auth.getUser()
+                    if (!currentUser) {
+                      throw new Error('Not authenticated')
+                    }
+
                     // First get the partner's auth_user_id
                     const { data: partnerData } = await supabase
                       .from('partners')
@@ -837,7 +843,8 @@ const handleInputChange = (e) => {
                       },
                       body: JSON.stringify({
                         userId: partnerData.auth_user_id,
-                        newPassword: newPassword
+                        newPassword: newPassword,
+                        adminAuthUserId: currentUser.id
                       })
                     })
 

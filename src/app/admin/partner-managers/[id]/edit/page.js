@@ -452,6 +452,12 @@ export default function EditPartnerManagerPage() {
                   }
 
                   try {
+                    // Get current admin user
+                    const { data: { user: currentUser } } = await supabase.auth.getUser()
+                    if (!currentUser) {
+                      throw new Error('Not authenticated')
+                    }
+
                     // Call API route to update password
                     const response = await fetch('/api/admin/update-password', {
                       method: 'POST',
@@ -460,7 +466,8 @@ export default function EditPartnerManagerPage() {
                       },
                       body: JSON.stringify({
                         userId: manager.auth_user_id,
-                        newPassword: newPassword
+                        newPassword: newPassword,
+                        adminAuthUserId: currentUser.id
                       })
                     })
 

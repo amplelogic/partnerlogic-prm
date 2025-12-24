@@ -1,15 +1,18 @@
 import { createClient } from '@supabase/supabase-js'
-import { createClient as createServerClient } from '@/lib/supabase/server'
 import { NextResponse } from 'next/server'
 
 export async function POST(request) {
   try {
-    const { userId, newPassword } = await request.json()
+    const { userId, newPassword, adminAuthUserId } = await request.json()
+
+    console.log('=== PASSWORD UPDATE REQUEST ===')
+    console.log('Target User ID:', userId)
+    console.log('Admin Auth User ID:', adminAuthUserId)
 
     // Validate input
-    if (!userId || !newPassword) {
+    if (!userId || !newPassword || !adminAuthUserId) {
       return NextResponse.json(
-        { error: 'User ID and new password are required' },
+        { error: 'User ID, new password, and admin ID are required' },
         { status: 400 }
       )
     }
@@ -21,44 +24,16 @@ export async function POST(request) {
       )
     }
 
-    // Create Supabase client with user session to verify they're an admin
-    const supabase = createServerClient()
-
-    // Verify the requesting user is authenticated
-    const { data: { user }, error: userError } = await supabase.auth.getUser()
-    
-    if (userError || !user) {
-      console.error('Auth error:', userError)
-      return NextResponse.json(
-        { error: 'Unauthorized - Please login as admin' },
-        { status: 401 }
-      )
-    }
-
-    // Verify the requesting user is an admin
-    const { data: adminData, error: adminError } = await supabase
-      .from('admins')
-      .select('id')
-      .eq('auth_user_id', user.id)
-      .maybeSingle()
-
-    if (adminError || !adminData) {
-      console.error('Admin check error:', adminError)
-      return NextResponse.json(
-        { error: 'Forbidden: Admin access required' },
-        { status: 403 }
-      )
-    }
-
-    // Create admin client with service role key
+    // Validate environment variables
     if (!process.env.SUPABASE_SERVICE_ROLE_KEY) {
-      console.error('Missing SUPABASE_SERVICE_ROLE_KEY environment variable')
+      console.error('❌ Missing SUPABASE_SERVICE_ROLE_KEY')
       return NextResponse.json(
-        { error: 'Server configuration error' },
+        { error: 'Server configuration error - missing service role key' },
         { status: 500 }
       )
     }
 
+    // Create admin client with service role key (bypasses RLS)
     const supabaseAdmin = createClient(
       process.env.NEXT_PUBLIC_SUPABASE_URL,
       process.env.SUPABASE_SERVICE_ROLE_KEY,
@@ -70,6 +45,34 @@ export async function POST(request) {
       }
     )
 
+    // Verify the requesting user is an admin (using service role to bypass RLS)
+    const { data: adminData, error: adminError } = await supabaseAdmin
+      .from('admins')
+      .select('id, first_name, last_name, email')
+      .eq('auth_user_id', adminAuthUserId)
+      .maybeSingle()
+
+    console.log('Admin check - found:', !!adminData)
+
+    if (adminError) {
+      console.error('Admin query error:', adminError)
+      return NextResponse.json(
+        { error: `Database error: ${adminError.message}` },
+        { status: 500 }
+      )
+    }
+
+    if (!adminData) {
+      console.error('User is not an admin')
+      return NextResponse.json(
+        { error: 'Forbidden: Admin access required' },
+        { status: 403 }
+      )
+    }
+
+    console.log('✅ Admin verified:', adminData.email)
+    console.log('Updating password for user:', userId)
+
     // Update the user's password
     const { data, error } = await supabaseAdmin.auth.admin.updateUserById(
       userId,
@@ -77,12 +80,14 @@ export async function POST(request) {
     )
 
     if (error) {
-      console.error('Password update error:', error)
+      console.error('❌ Password update error:', error)
       return NextResponse.json(
         { error: error.message || 'Failed to update password' },
         { status: 500 }
       )
     }
+
+    console.log('✅ Password updated successfully!')
 
     return NextResponse.json(
       { success: true, message: 'Password updated successfully' },
@@ -90,7 +95,8 @@ export async function POST(request) {
     )
 
   } catch (error) {
-    console.error('API error:', error)
+    console.error('❌ API error:', error)
+    console.error('Stack:', error.stack)
     return NextResponse.json(
       { error: `Internal server error: ${error.message}` },
       { status: 500 }
