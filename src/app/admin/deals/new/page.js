@@ -118,12 +118,35 @@ export default function AdminNewDealPage() {
           email,
           organization:organizations(
             name,
-            tier
+            tier,
+            discount_percentage
           )
         `)
         .order('first_name', { ascending: true })
 
-      setPartners(partnersData || [])
+      // Fetch tier settings to get current commission percentages
+      const { data: tierSettings } = await supabase
+        .from('tier_settings')
+        .select('tier_name, discount_percentage')
+      
+      // Map tier settings for quick lookup
+      const tierCommissions = {}
+      if (tierSettings) {
+        tierSettings.forEach(tier => {
+          tierCommissions[tier.tier_name] = tier.discount_percentage
+        })
+      }
+      
+      // Update partners with current tier commission percentages
+      const partnersWithCurrentCommissions = (partnersData || []).map(partner => ({
+        ...partner,
+        organization: partner.organization ? {
+          ...partner.organization,
+          discount_percentage: tierCommissions[partner.organization.tier] ?? partner.organization.discount_percentage
+        } : null
+      }))
+      
+      setPartners(partnersWithCurrentCommissions)
     } catch (error) {
       console.error('Error loading data:', error)
     } finally {
@@ -133,10 +156,29 @@ export default function AdminNewDealPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      }
+      
+      // Auto-calculate commission and invoice when deal value or partner changes
+      if ((name === 'deal_value' || name === 'partner_id') && updated.deal_value && updated.partner_id) {
+        const selectedPartner = partners.find(p => p.id === updated.partner_id)
+        const dealValue = parseFloat(updated.deal_value) || 0
+        
+        if (selectedPartner?.organization?.discount_percentage) {
+          const commissionRate = selectedPartner.organization.discount_percentage / 100
+          const commission = dealValue * commissionRate
+          const invoiceToAmpleLogic = dealValue - commission
+          
+          updated.your_commission = commission.toFixed(2)
+          updated.price_to_ample_logic = invoiceToAmpleLogic.toFixed(2)
+        }
+      }
+      
+      return updated
+    })
     
     if (errors[name]) {
       setErrors(prev => ({
@@ -541,15 +583,19 @@ export default function AdminNewDealPage() {
                       step="0.01"
                       value={formData.your_commission}
                       onChange={handleInputChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      readOnly
+                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
                       placeholder="5000.00"
                     />
                   </div>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Auto-calculated based on partner's tier commission rate
+                  </p>
                 </div>
 
                 <div>
                   <label htmlFor="price_to_ample_logic" className="block text-sm font-medium text-gray-700 mb-2">
-                    Price to Ample Logic
+                    Invoice to Ample Logic
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -563,10 +609,14 @@ export default function AdminNewDealPage() {
                       step="0.01"
                       value={formData.price_to_ample_logic}
                       onChange={handleInputChange}
-                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      placeholder="45000.00"
+                      readOnly
+                      className="block w-full pl-10 pr-3 py-2 text-gray-900 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
+                      placeholder="4500.00"
                     />
                   </div>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Auto-calculated (Deal Value - Commission)
+                  </p>
                 </div>
 
                 <div>

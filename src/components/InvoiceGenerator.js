@@ -230,7 +230,7 @@ const InvoiceGenerator = ({ deal, partner }) => {
       
       ${deal.price_to_ample_logic ? `
       <div class="totals-row">
-        <div class="totals-label">Price to Ample Logic:</div>
+        <div class="totals-label">Invoice to Ample Logic:</div>
         <div class="totals-value">${formatCurrency(deal.price_to_ample_logic)}</div>
       </div>
       ` : ''}

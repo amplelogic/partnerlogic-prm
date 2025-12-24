@@ -92,6 +92,18 @@ export default function NewDealPage() {
         .single()
 
       if (partnerData) {
+        // Fetch current tier settings to get up-to-date commission percentage
+        const { data: tierData } = await supabase
+          .from('tier_settings')
+          .select('discount_percentage')
+          .eq('tier_name', partnerData.organization.tier)
+          .single()
+        
+        // Override organization discount with current tier setting
+        if (tierData) {
+          partnerData.organization.discount_percentage = tierData.discount_percentage
+        }
+        
         setPartner(partnerData)
       }
     } catch (error) {
@@ -103,10 +115,25 @@ export default function NewDealPage() {
 
   const handleInputChange = (e) => {
     const { name, value } = e.target
-    setFormData(prev => ({
-      ...prev,
-      [name]: value
-    }))
+    setFormData(prev => {
+      const updated = {
+        ...prev,
+        [name]: value
+      }
+      
+      // Auto-calculate commission when deal value changes
+      if (name === 'deal_value' && value && partner?.organization?.discount_percentage) {
+        const dealValue = parseFloat(value) || 0
+        const commissionRate = partner.organization.discount_percentage / 100
+        const commission = dealValue * commissionRate
+        const invoiceToAmpleLogic = dealValue - commission
+        
+        updated.your_commission = commission.toFixed(2)
+        updated.price_to_ample_logic = invoiceToAmpleLogic.toFixed(2)
+      }
+      
+      return updated
+    })
     
     // Clear error for this field when user starts typing
     if (errors[name]) {
@@ -503,15 +530,21 @@ if (emailError) {
                       step="0.01"
                       value={formData.your_commission}
                       onChange={handleInputChange}
-                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      readOnly
+                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
                       placeholder="5000.00"
                     />
                   </div>
+                  {partner?.organization?.discount_percentage && (
+                    <p className="mt-1 text-sm text-gray-500">
+                      Auto-calculated at {partner.organization.discount_percentage}% commission rate
+                    </p>
+                  )}
                 </div>
 
                 <div>
                   <label htmlFor="price_to_ample_logic" className="block text-sm font-medium text-gray-700 mb-2">
-                    Price to Ample Logic (USD)
+                    Invoice to Ample Logic (USD)
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
@@ -525,10 +558,14 @@ if (emailError) {
                       step="0.01"
                       value={formData.price_to_ample_logic}
                       onChange={handleInputChange}
-                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      readOnly
+                      className="block w-full pl-10 pr-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50"
                       placeholder="45000.00"
                     />
                   </div>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Auto-calculated (Deal Value - Commission)
+                  </p>
                 </div>
 
                 <div>
