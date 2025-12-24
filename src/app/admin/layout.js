@@ -7,10 +7,11 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, BarChart3, FileText, Settings, Shield,
-  Menu, X, LogOut, Bell, Search, Home, Building2,
+  Menu, X, LogOut, Search, Home, Building2,
   User, ChevronDown, BookOpen, Headphones,
   TrendingUp, Package, DollarSign
 } from 'lucide-react'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function AdminLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -287,9 +288,7 @@ export default function AdminLayout({ children }) {
                   />
                 </div>
 
-                <button className="p-2 text-gray-400 hover:text-gray-500 rounded-md">
-                  <Bell className="h-6 w-6" />
-                </button>
+                <NotificationBell />
 
                 <div className="relative">
                   <button 

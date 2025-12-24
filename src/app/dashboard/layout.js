@@ -7,10 +7,11 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, BarChart3, Headphones, FileText, Settings, 
-  Menu, X, LogOut, Bell, Search, Home, TrendingUp,
+  Menu, X, LogOut, Search, Home, TrendingUp,
   User, ChevronDown, BookOpen
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function DashboardLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -283,9 +284,7 @@ const navigation = [
                 </button>
 
                 {/* Notifications */}
-                <button className="p-2 text-gray-400 hover:text-gray-500 focus:outline-none focus:ring-2 focus:ring-blue-500 rounded-md">
-                  <Bell className="h-6 w-6" />
-                </button>
+                <NotificationBell />
 
                 {/* Profile dropdown */}
                 <div className="relative">

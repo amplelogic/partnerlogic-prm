@@ -6,9 +6,10 @@ import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
   Users, BarChart3, Settings,
-  Menu, X, LogOut, Bell, Search, Home,
+  Menu, X, LogOut, Search, Home,
   User, ChevronDown, Building2, Headphones
 } from 'lucide-react'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function PartnerManagerLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -266,9 +267,7 @@ export default function PartnerManagerLayout({ children }) {
               </div>
               
               <div className="ml-4 flex items-center space-x-4">
-                <button className="p-2 text-gray-400 hover:text-gray-500 rounded-md">
-                  <Bell className="h-6 w-6" />
-                </button>
+                <NotificationBell />
 
                 <div className="relative">
                   <button 

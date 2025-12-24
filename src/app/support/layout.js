@@ -5,9 +5,10 @@ import { createClient } from '@/lib/supabase/client'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { 
-  Headphones, Settings, Menu, X, LogOut, Bell, Home,
+  Headphones, Settings, Menu, X, LogOut, Home,
   User, ChevronDown, Ticket
 } from 'lucide-react'
+import NotificationBell from '@/components/NotificationBell'
 
 export default function SupportLayout({ children }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -275,9 +276,7 @@ export default function SupportLayout({ children }) {
               </div>
               
               <div className="ml-4 flex items-center space-x-4">
-                <button className="p-2 text-gray-400 hover:text-gray-500 rounded-md">
-                  <Bell className="h-6 w-6" />
-                </button>
+                <NotificationBell />
 
                 <div className="relative">
                   <button 

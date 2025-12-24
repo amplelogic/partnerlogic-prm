@@ -107,6 +107,24 @@ const loadTicket = async () => {
 
       if (updateError) throw updateError
 
+      // Notify partner about status change
+      try {
+        if (ticket.partner?.id) {
+          const notification = NotificationTemplates.supportTicketStatusChanged(
+            ticket.id,
+            statusConfig[selectedStatus]?.label || selectedStatus
+          )
+          await notifyPartner({
+            partnerId: ticket.partner.id,
+            ...notification,
+            referenceId: ticket.id,
+            referenceType: 'support_ticket'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
+      }
+
       setSuccess('Ticket status updated successfully!')
       await loadTicket()
 
@@ -133,6 +151,24 @@ const loadTicket = async () => {
 
       // In a real implementation, you'd save this to a ticket_responses table
       // For now, we'll just show success and clear the field
+      
+      // Notify partner about response
+      try {
+        if (ticket.partner?.id) {
+          const notification = NotificationTemplates.supportTicketResponse(
+            ticket.id,
+            'Support Team'
+          )
+          await notifyPartner({
+            partnerId: ticket.partner.id,
+            ...notification,
+            referenceId: ticket.id,
+            referenceType: 'support_ticket'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
+      }
       
       setSuccess('Response added successfully!')
       setResponse('')

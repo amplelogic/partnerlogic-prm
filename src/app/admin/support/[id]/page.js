@@ -85,6 +85,24 @@ export default function AdminSupportTicketDetailPage() {
 
       if (error) throw error
 
+      // Notify partner about status change
+      try {
+        if (ticket.partner_id) {
+          const notification = NotificationTemplates.supportTicketStatusChanged(
+            ticket.id,
+            ticketStatuses.find(s => s.value === newStatus)?.label || newStatus
+          )
+          await notifyPartner({
+            partnerId: ticket.partner_id,
+            ...notification,
+            referenceId: ticket.id,
+            referenceType: 'support_ticket'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
+      }
+
       await loadTicketDetails()
       alert('Ticket status updated successfully!')
 

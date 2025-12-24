@@ -9,6 +9,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, User, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { CURRENCIES } from '@/lib/currencyUtils'
+import { notifyPartner, NotificationTemplates } from '@/lib/notifications'
 
 // SALES STAGES - Visible by default
 const SALES_STAGES = [
@@ -348,6 +349,25 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
           }])
       } catch (activityError) {
         console.error('Error logging activity:', activityError)
+      }
+
+      // Notify partner about stage change
+      try {
+        if (activeDeal.partner_id) {
+          const dealName = `${activeDeal.customer_company || activeDeal.customer_name}`
+          const oldStageLabel = activeStages.find(s => s.id === oldAdminStage)?.label || oldAdminStage
+          const newStageLabel = activeStages.find(s => s.id === newAdminStage)?.label || newAdminStage
+          
+          const notification = NotificationTemplates.dealStatusChanged(dealName, oldStageLabel, newStageLabel)
+          await notifyPartner({
+            partnerId: activeDeal.partner_id,
+            ...notification,
+            referenceId: activeId,
+            referenceType: 'deal'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
       }
 
       if (onDealUpdate) {

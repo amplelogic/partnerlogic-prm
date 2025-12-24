@@ -8,6 +8,7 @@ import {
   ArrowLeft, MessageSquare, User, Building2, AlertCircle,
   CheckCircle, Clock, Save, Mail
 } from 'lucide-react'
+import { notifyPartner, NotificationTemplates } from '@/lib/notifications'
 
 export default function PartnerManagerSupportTicketDetailPage() {
   const params = useParams()
@@ -119,6 +120,24 @@ export default function PartnerManagerSupportTicketDetailPage() {
       if (error) {
         console.error('Update error:', error)
         throw error
+      }
+
+      // Notify partner about status change
+      try {
+        if (ticket.partner_id) {
+          const notification = NotificationTemplates.supportTicketStatusChanged(
+            ticket.id,
+            ticketStatuses.find(s => s.value === newStatus)?.label || newStatus
+          )
+          await notifyPartner({
+            partnerId: ticket.partner_id,
+            ...notification,
+            referenceId: ticket.id,
+            referenceType: 'support_ticket'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
       }
 
       await loadTicketDetails()

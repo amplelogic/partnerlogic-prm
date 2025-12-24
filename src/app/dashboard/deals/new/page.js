@@ -7,6 +7,7 @@ import { useRouter } from 'next/navigation'
 import Link from 'next/link'
 import { ArrowLeft, Save, User, Mail, Building2, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react'
 import { getCurrencyOptions } from '@/lib/currencyUtils'
+import { notifyAdmins, notifyPartnerManager, NotificationTemplates } from '@/lib/notifications'
 
 export default function NewDealPage() {
   const [partner, setPartner] = useState(null)
@@ -231,6 +232,33 @@ if (emailError) {
 } catch (emailError) {
   console.error('❌ Email exception:', emailError)
 }
+
+      // Send notifications to admins and partner manager
+      try {
+        const dealName = `${formData.customer_company} - ${formData.customer_name}`
+        const partnerName = `${partner.first_name} ${partner.last_name}`
+        
+        // Notify all admins
+        const adminNotification = NotificationTemplates.dealCreated(dealName, partnerName)
+        await notifyAdmins({
+          ...adminNotification,
+          referenceId: data[0].id,
+          referenceType: 'deal'
+        })
+        
+        // Notify partner manager if assigned
+        if (partner.partner_manager_id) {
+          await notifyPartnerManager({
+            partnerId: partner.id,
+            ...adminNotification,
+            referenceId: data[0].id,
+            referenceType: 'deal'
+          })
+        }
+      } catch (notificationError) {
+        console.error('Error sending notifications:', notificationError)
+        // Don't fail the whole operation if notifications fail
+      }
     }
 
     setSuccess(true)

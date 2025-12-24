@@ -10,6 +10,7 @@ import {
   Headphones, Wrench, Users, FileText, Upload,
   Info, Clock
 } from 'lucide-react'
+import { notifyAdmins, NotificationTemplates } from '@/lib/notifications'
 
 export default function NewSupportTicketPage() {
   const [partner, setPartner] = useState(null)
@@ -190,6 +191,24 @@ export default function NewSupportTicketPage() {
         .select()
 
       if (error) throw error
+
+      // Send notification to admins
+      try {
+        const userName = `${partner.first_name} ${partner.last_name}`
+        const notification = NotificationTemplates.supportTicketCreated(
+          data[0].id,
+          formData.subject,
+          userName
+        )
+        
+        await notifyAdmins({
+          ...notification,
+          referenceId: data[0].id,
+          referenceType: 'support_ticket'
+        })
+      } catch (notificationError) {
+        console.error('Error sending notification:', notificationError)
+      }
 
       setSuccess(true)
       
