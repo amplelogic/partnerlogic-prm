@@ -299,7 +299,7 @@ const loadDashboardData = async () => {
             </div>
           </div>
 
-          {/* Open Tickets */}
+          {/* View All Tickets */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-red-100 rounded-xl flex items-center justify-center">
@@ -310,6 +310,12 @@ const loadDashboardData = async () => {
                 <p className="text-sm text-gray-600">Open Tickets</p>
               </div>
             </div>
+            <Link 
+              href="/admin/support"
+              className="mt-4 text-sm text-red-600 hover:text-red-700 font-medium flex items-center"
+            >
+              View All Tickets <ArrowRight className="h-4 w-4 ml-1" />
+            </Link>
           </div>
 
           {/* Knowledge Articles */}
@@ -331,7 +337,7 @@ const loadDashboardData = async () => {
             </Link>
           </div>
 
-          {/* Pending MDF */}
+          {/* View MDF */}
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
             <div className="flex items-center">
               <div className="w-12 h-12 bg-orange-100 rounded-xl flex items-center justify-center">
@@ -342,6 +348,12 @@ const loadDashboardData = async () => {
                 <p className="text-sm text-gray-600">Pending MDF</p>
               </div>
             </div>
+            <Link 
+              href="/admin/mdf"
+              className="mt-4 text-sm text-orange-600 hover:text-orange-700 font-medium flex items-center"
+            >
+              View MDF <ArrowRight className="h-4 w-4 ml-1" />
+            </Link>
           </div>
         </div>
 
