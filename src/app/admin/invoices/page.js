@@ -24,6 +24,7 @@ export default function AdminInvoicesPage() {
   const [partnerFilter, setPartnerFilter] = useState('all')
   const [dateFilter, setDateFilter] = useState('all')
   const [partners, setPartners] = useState([])
+  const [viewMode, setViewMode] = useState('deals') // 'deals' or 'referrals'
   
   const supabase = createClient()
 
@@ -222,14 +223,35 @@ export default function AdminInvoicesPage() {
             <div>
               <h1 className="text-2xl font-bold text-gray-900">Invoices</h1>
               <p className="mt-1 text-sm text-gray-600">
-                All closed won deals ready for invoicing
+                All closed won deals and completed referral orders
               </p>
             </div>
             <div className="flex items-center space-x-3">
-              <span className="inline-flex items-center px-3 py-2 rounded-lg bg-green-100 text-green-800 text-sm font-medium">
-                <FileText className="h-4 w-4 mr-2" />
-                {filteredDeals.length} {filteredDeals.length === 1 ? 'Invoice' : 'Invoices'}
-              </span>
+              {/* Toggle Switch */}
+              <div className="inline-flex rounded-lg border border-gray-300 bg-white p-1">
+                <button
+                  onClick={() => setViewMode('deals')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'deals'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <FileText className="h-4 w-4 inline mr-1" />
+                  Deals ({filteredDeals.length})
+                </button>
+                <button
+                  onClick={() => setViewMode('referrals')}
+                  className={`px-4 py-2 text-sm font-medium rounded-md transition-colors ${
+                    viewMode === 'referrals'
+                      ? 'bg-blue-600 text-white'
+                      : 'text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <ShoppingCart className="h-4 w-4 inline mr-1" />
+                  Referrals ({filteredReferralOrders.length})
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -305,8 +327,11 @@ export default function AdminInvoicesPage() {
           )}
         </div>
 
-        {/* Invoices List */}
-        {filteredDeals.length === 0 ? (
+        {/* Deals View */}
+        {viewMode === 'deals' && (
+          <>
+            {/* Invoices List */}
+            {filteredDeals.length === 0 ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center">
             <FileText className="mx-auto h-12 w-12 text-gray-400" />
             <h3 className="mt-2 text-sm font-medium text-gray-900">No invoices found</h3>
@@ -443,15 +468,13 @@ export default function AdminInvoicesPage() {
             </div>
           </div>
         )}
+          </>
+        )}
 
-        {/* Referral Orders Section */}
-        <div className="mt-12 pt-8 border-t-2 border-gray-200">
-          <div className="mb-6 flex items-center">
-            <ShoppingCart className="h-6 w-6 text-green-600 mr-3" />
-            <h2 className="text-xl font-semibold text-gray-900">Referral Order Invoices</h2>
-          </div>
-
-          {filteredReferralOrders.length === 0 ? (
+        {/* Referral Orders View */}
+        {viewMode === 'referrals' && (
+          <>
+            {filteredReferralOrders.length === 0 ? (
             <div className="text-center py-12 bg-gray-50 rounded-lg">
               <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
               <h3 className="mt-2 text-sm font-medium text-gray-900">No referral order invoices found</h3>
@@ -542,13 +565,6 @@ export default function AdminInvoicesPage() {
 
                     {/* Actions */}
                     <div className="flex items-center space-x-3">
-                      <Link
-                        href={`/admin/support/${order.id}`}
-                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <Eye className="h-4 w-4 mr-1" />
-                        View Order
-                      </Link>
                       <button
                         onClick={() => {
                           const generator = document.createElement('div');
@@ -603,9 +619,11 @@ export default function AdminInvoicesPage() {
               </div>
             </div>
           )}
+          </>
+        )}
 
-          {/* Overall Summary */}
-          {(filteredDeals.length > 0 || filteredReferralOrders.length > 0) && (
+        {/* Overall Summary */}
+        {(filteredDeals.length > 0 || filteredReferralOrders.length > 0) && (
             <div className="mt-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 border-2 border-gray-200">
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Summary</h3>
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
@@ -635,7 +653,6 @@ export default function AdminInvoicesPage() {
               </div>
             </div>
           )}
-        </div>
       </div>
     </div>
   )

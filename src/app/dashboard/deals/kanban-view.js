@@ -123,6 +123,8 @@ function KanbanColumn({ stage, deals, activeId }) {
 export default function KanbanView({ deals, onDealUpdate }) {
   const [activeId, setActiveId] = useState(null)
   const [localDeals, setLocalDeals] = useState(deals)
+  const [showClosedWonModal, setShowClosedWonModal] = useState(false)
+  const [pendingClosedWonDeal, setPendingClosedWonDeal] = useState(null)
   const supabase = createClient()
 
   // ADD THIS: Update localDeals when deals prop changes
@@ -190,15 +192,27 @@ export default function KanbanView({ deals, onDealUpdate }) {
 
     if (!activeDeal) return
 
-    // Update in database
+    // Check if deal is being moved to closed_won
+    if (activeDeal.stage === 'closed_won') {
+      // Show confirmation modal
+      setPendingClosedWonDeal(activeDeal)
+      setShowClosedWonModal(true)
+      return // Don't update database yet
+    }
+
+    // Update in database for other stages
+    await updateDealStage(activeDeal)
+  }
+
+  const updateDealStage = async (deal) => {
     try {
       const { error } = await supabase
         .from('deals')
         .update({
-          stage: activeDeal.stage,
+          stage: deal.stage,
           updated_at: new Date().toISOString()
         })
-        .eq('id', activeId)
+        .eq('id', deal.id)
 
       if (error) throw error
 
@@ -206,9 +220,9 @@ export default function KanbanView({ deals, onDealUpdate }) {
       await supabase
         .from('deal_activities')
         .insert([{
-          deal_id: activeId,
+          deal_id: deal.id,
           activity_type: 'stage_updated',
-          description: `Stage updated to ${PARTNER_STAGES.find(s => s.id === activeDeal.stage)?.label}`
+          description: `Stage updated to ${PARTNER_STAGES.find(s => s.id === deal.stage)?.label}`
         }])
 
       // Notify parent component
@@ -222,41 +236,93 @@ export default function KanbanView({ deals, onDealUpdate }) {
     }
   }
 
+  const handleConfirmClosedWon = async () => {
+    if (pendingClosedWonDeal) {
+      await updateDealStage(pendingClosedWonDeal)
+      setShowClosedWonModal(false)
+      setPendingClosedWonDeal(null)
+    }
+  }
+
+  const handleCancelClosedWon = () => {
+    // Revert the local state
+    setLocalDeals(deals)
+    setShowClosedWonModal(false)
+    setPendingClosedWonDeal(null)
+  }
+
   const activeDeal = activeId ? localDeals.find(d => d.id === activeId) : null
 
   return (
-    <DndContext
-      sensors={sensors}
-      collisionDetection={closestCorners}
-      onDragStart={handleDragStart}
-      onDragOver={handleDragOver}
-      onDragEnd={handleDragEnd}
-    >
-      <div className="flex gap-2 overflow-x-auto pb-4">
-        <SortableContext items={PARTNER_STAGES.map(s => s.id)} strategy={verticalListSortingStrategy}>
-          {PARTNER_STAGES.map(stage => (
-            <KanbanColumn
-              key={stage.id}
-              stage={stage}
-              deals={localDeals}
-              activeId={activeId}
-            />
-          ))}
-        </SortableContext>
-      </div>
+    <>
+      <DndContext
+        sensors={sensors}
+        collisionDetection={closestCorners}
+        onDragStart={handleDragStart}
+        onDragOver={handleDragOver}
+        onDragEnd={handleDragEnd}
+      >
+        <div className="flex gap-2 overflow-x-auto pb-4">
+          <SortableContext items={PARTNER_STAGES.map(s => s.id)} strategy={verticalListSortingStrategy}>
+            {PARTNER_STAGES.map(stage => (
+              <KanbanColumn
+                key={stage.id}
+                stage={stage}
+                deals={localDeals}
+                activeId={activeId}
+              />
+            ))}
+          </SortableContext>
+        </div>
 
-      <DragOverlay>
-        {activeDeal ? (
-          <div className="bg-white rounded-md border-2 border-blue-500 p-2 shadow-xl rotate-2 cursor-grabbing w-44">
-            <h4 className="font-medium text-gray-900 text-xs truncate">
-              {activeDeal.customer_name}
-            </h4>
-            <div className="flex items-center text-xs font-semibold text-green-600 mt-1">
-              {formatCurrency(activeDeal.deal_value, activeDeal.currency)}
+        <DragOverlay>
+          {activeDeal ? (
+            <div className="bg-white rounded-md border-2 border-blue-500 p-2 shadow-xl rotate-2 cursor-grabbing w-44">
+              <h4 className="font-medium text-gray-900 text-xs truncate">
+                {activeDeal.customer_name}
+              </h4>
+              <div className="flex items-center text-xs font-semibold text-green-600 mt-1">
+                {formatCurrency(activeDeal.deal_value, activeDeal.currency)}
+              </div>
+            </div>
+          ) : null}
+        </DragOverlay>
+      </DndContext>
+
+      {/* Closed Won Confirmation Modal */}
+      {showClosedWonModal && (
+        <div className="fixed inset-0 bg-transparent flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg shadow-xl max-w-md w-full mx-4 p-6">
+            <div className="text-center">
+              <div className="mx-auto flex items-center justify-center h-12 w-12 rounded-full bg-green-100 mb-4">
+                <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                </svg>
+              </div>
+              <h3 className="text-lg font-medium text-gray-900 mb-2">
+                Invoice sent to Ample Logic
+              </h3>
+              <p className="text-sm text-gray-500 mb-6">
+                The invoice for this deal will be sent to Ample Logic. Click OK to confirm and move the deal to Closed Won.
+              </p>
+              <div className="flex space-x-3">
+                <button
+                  onClick={handleCancelClosedWon}
+                  className="flex-1 px-4 py-2 border border-gray-300 rounded-md text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={handleConfirmClosedWon}
+                  className="flex-1 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500"
+                >
+                  OK
+                </button>
+              </div>
             </div>
           </div>
-        ) : null}
-      </DragOverlay>
-    </DndContext>
+        </div>
+      )}
+    </>
   )
 }

@@ -10,9 +10,11 @@ import {
   Phone, DollarSign, Calendar, FileText, Tag, Package
 } from 'lucide-react'
 import { getCurrencyOptionsSync } from '@/lib/currencyUtils'
+import ProductMultiSelect from '@/components/ProductMultiSelect'
 
 export default function NewReferralOrderPage() {
   const [partner, setPartner] = useState(null)
+  const [products, setProducts] = useState([])
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
   const [errors, setErrors] = useState({})
@@ -21,14 +23,12 @@ export default function NewReferralOrderPage() {
     client_email: '',
     client_company: '',
     client_phone: '',
-    product_name: '',
-    product_description: '',
+    selected_products: [],
     order_value: '',
     currency: 'USD',
     commission_percentage: '',
     commission_amount: '',
-    expected_delivery_date: '',
-    status: 'pending',
+    status: 'completed',
     notes: ''
   })
   
@@ -37,7 +37,23 @@ export default function NewReferralOrderPage() {
 
   useEffect(() => {
     loadPartner()
+    loadProducts()
   }, [])
+
+  const loadProducts = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('products')
+        .select('*')
+        .eq('is_active', true)
+        .order('name', { ascending: true })
+
+      if (error) throw error
+      setProducts(data || [])
+    } catch (error) {
+      console.error('Error loading products:', error)
+    }
+  }
 
   const loadPartner = async () => {
     try {
@@ -57,12 +73,24 @@ export default function NewReferralOrderPage() {
         .single()
 
       if (partnerData) {
+        // Fetch current tier settings to get up-to-date commission percentage
+        const { data: tierData } = await supabase
+          .from('tier_settings')
+          .select('discount_percentage')
+          .eq('tier_name', partnerData.organization.tier)
+          .single()
+        
+        // Override organization discount with current tier setting
+        if (tierData) {
+          partnerData.organization.discount_percentage = tierData.discount_percentage
+        }
+        
         setPartner(partnerData)
-        // Set default commission percentage from partner's organization
-        if (partnerData.organization?.discount_percentage) {
+        // Set default commission percentage from partner's tier
+        if (tierData?.discount_percentage) {
           setFormData(prev => ({
             ...prev,
-            commission_percentage: partnerData.organization.discount_percentage
+            commission_percentage: tierData.discount_percentage
           }))
         }
       }
@@ -107,8 +135,8 @@ export default function NewReferralOrderPage() {
       newErrors.client_email = 'Invalid email address'
     }
     
-    if (!formData.product_name.trim()) {
-      newErrors.product_name = 'Product/Service name is required'
+    if (!formData.selected_products || formData.selected_products.length === 0) {
+      newErrors.selected_products = 'At least one product must be selected'
     }
     
     if (!formData.order_value || parseFloat(formData.order_value) <= 0) {
@@ -129,6 +157,10 @@ export default function NewReferralOrderPage() {
     setSubmitting(true)
     
     try {
+      // Get selected product details - combine names
+      const productNames = formData.selected_products.map(p => p.name).join(', ')
+      const productDescriptions = formData.selected_products.map(p => p.description).filter(Boolean).join(' | ')
+      
       const { data, error } = await supabase
         .from('referral_orders')
         .insert([{
@@ -137,14 +169,15 @@ export default function NewReferralOrderPage() {
           client_email: formData.client_email,
           client_company: formData.client_company || null,
           client_phone: formData.client_phone || null,
-          product_name: formData.product_name,
-          product_description: formData.product_description || null,
+          product_name: productNames,
+          product_description: productDescriptions || null,
+          products_json: JSON.stringify(formData.selected_products),
           order_value: parseFloat(formData.order_value),
           currency: formData.currency,
           commission_percentage: parseFloat(formData.commission_percentage) || 0,
           commission_amount: parseFloat(formData.commission_amount) || 0,
-          expected_delivery_date: formData.expected_delivery_date || null,
-          status: formData.status,
+          expected_delivery_date: new Date().toISOString().split('T')[0], // Today's date
+          status: 'completed', // Always completed
           notes: formData.notes || null
         }])
         .select()
@@ -299,33 +332,21 @@ export default function NewReferralOrderPage() {
             <div className="space-y-6">
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Product/Service Name <span className="text-red-500">*</span>
+                  Select Products <span className="text-red-500">*</span>
                 </label>
-                <input
-                  type="text"
-                  name="product_name"
-                  value={formData.product_name}
-                  onChange={handleChange}
-                  className={`block w-full px-3 py-2 border ${errors.product_name ? 'border-red-300' : 'border-gray-300'} rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black`}
-                  placeholder="Enterprise Software License"
+                <ProductMultiSelect
+                  selectedProducts={formData.selected_products}
+                  onChange={(products) => {
+                    setFormData(prev => ({ ...prev, selected_products: products }))
+                    if (errors.selected_products) {
+                      setErrors(prev => ({ ...prev, selected_products: '' }))
+                    }
+                  }}
                 />
-                {errors.product_name && (
-                  <p className="mt-1 text-sm text-red-600">{errors.product_name}</p>
+                {errors.selected_products && (
+                  <p className="mt-1 text-sm text-red-600">{errors.selected_products}</p>
                 )}
-              </div>
-
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Description
-                </label>
-                <textarea
-                  name="product_description"
-                  value={formData.product_description}
-                  onChange={handleChange}
-                  rows={3}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
-                  placeholder="Detailed description of the product or service..."
-                />
+                <p className="mt-1 text-xs text-gray-500">You can select multiple products for this referral order</p>
               </div>
             </div>
           </div>
@@ -409,32 +430,28 @@ export default function NewReferralOrderPage() {
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Expected Delivery Date
+                  Order Date
                 </label>
                 <input
-                  type="date"
-                  name="expected_delivery_date"
-                  value={formData.expected_delivery_date}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
+                  type="text"
+                  value={new Date().toLocaleDateString()}
+                  readOnly
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-gray-50 text-gray-600"
                 />
+                <p className="mt-1 text-xs text-gray-500">Automatically set to today</p>
               </div>
 
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-2">
                   Status
                 </label>
-                <select
-                  name="status"
-                  value={formData.status}
-                  onChange={handleChange}
-                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 text-black"
-                >
-                  <option value="pending">Pending</option>
-                  <option value="processing">Processing</option>
-                  <option value="completed">Completed</option>
-                  <option value="cancelled">Cancelled</option>
-                </select>
+                <input
+                  type="text"
+                  value="Completed"
+                  readOnly
+                  className="block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm bg-green-50 text-green-700 font-medium"
+                />
+                <p className="mt-1 text-xs text-gray-500">Referral orders are automatically completed</p>
               </div>
             </div>
           </div>
