@@ -322,16 +322,18 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
                 </div>
               </div>
             </div>
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            {/* Invoice Generator */}
+            {deal.admin_stage === 'closed_won' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Generate Invoice</h2>
+                </div>
+                
+                <div className="p-6">
+                  <InvoiceGenerator deal={deal} partner={partner} />
+                </div>
               </div>
-              
-              <div className="p-6">
-                <InvoiceGenerator deal={deal} partner={partner} />
-              </div>
-            </div>
+            )}
           </div>
         </div>
       </div>

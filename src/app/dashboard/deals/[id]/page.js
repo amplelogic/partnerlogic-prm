@@ -540,13 +540,24 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
           {/* Sidebar */}
           <div className="space-y-6">
             {/* Quick Actions */}
+            {deal.admin_stage === 'closed_won' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Generate Invoice</h2>
+                </div>
+                
+                <div className="p-6 space-y-3">
+                  <InvoiceGenerator deal={deal} partner={partner} />
+                </div>
+              </div>
+            )}
+            
             <div className="bg-white rounded-xl shadow-sm border border-gray-200">
               <div className="p-6 border-b border-gray-200">
                 <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
               </div>
               
               <div className="p-6 space-y-3">
-                <InvoiceGenerator deal={deal} partner={partner} />
                 
                 <button className="w-full flex items-center justify-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500">
                   <Mail className="h-4 w-4 mr-2" />

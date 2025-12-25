@@ -555,15 +555,17 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
               </div>
             )}
             {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Quick Actions</h2>
+            {deal.admin_stage === 'closed_won' && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900">Generate Invoice</h2>
+                </div>
+                
+                <div className="p-6 space-y-3">
+                  <InvoiceGenerator deal={deal} partner={partner} />
+                </div>
               </div>
-              
-              <div className="p-6 space-y-3">
-                <InvoiceGenerator deal={deal} partner={partner} />
-              </div>
-            </div>
+            )}
             {/* Admin Note */}
             <div className="bg-blue-50 rounded-xl border border-blue-200 p-4">
               <div className="flex">
