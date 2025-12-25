@@ -90,7 +90,7 @@ export default function PartnerManagerInvoicesPage() {
           )
         `)
         .in('partner_id', partnerIds)
-        .eq('admin_stage', 'closed_won')
+        .or('stage.eq.closed_won,admin_stage.eq.closed_won')
         .order('created_at', { ascending: false })
 
       if (dealsError) throw dealsError
