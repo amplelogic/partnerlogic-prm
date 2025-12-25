@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { 
   Users, BarChart3, Headphones, FileText, Settings, 
   Menu, X, LogOut, Search, Home, TrendingUp,
-  User, ChevronDown, BookOpen, Download
+  User, ChevronDown, BookOpen, Download, ShoppingCart
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import NotificationBell from '@/components/NotificationBell'
@@ -82,6 +82,7 @@ export default function DashboardLayout({ children }) {
 const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'Deals', href: '/dashboard/deals', icon: BarChart3 },
+  { name: 'Referral Orders', href: '/dashboard/referral-orders', icon: ShoppingCart },
   { name: 'Invoices', href: '/dashboard/invoices', icon: Download },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
   // Conditionally add Learning tab

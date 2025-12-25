@@ -5,16 +5,19 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import InvoiceGenerator from '@/components/InvoiceGenerator'
+import ReferralInvoiceGenerator from '@/components/ReferralInvoiceGenerator'
 import { 
   Search, Filter, FileText, Download, 
   Building2, User, Mail, DollarSign, Calendar,
-  Eye, ChevronDown
+  Eye, ChevronDown, ShoppingCart
 } from 'lucide-react'
 import { formatCurrency as formatCurrencyUtil } from '@/lib/currencyUtils'
 
 export default function AdminInvoicesPage() {
   const [deals, setDeals] = useState([])
   const [filteredDeals, setFilteredDeals] = useState([])
+  const [referralOrders, setReferralOrders] = useState([])
+  const [filteredReferralOrders, setFilteredReferralOrders] = useState([])
   const [loading, setLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState('')
   const [showFilters, setShowFilters] = useState(false)
@@ -30,7 +33,8 @@ export default function AdminInvoicesPage() {
 
   useEffect(() => {
     filterDeals()
-  }, [searchTerm, partnerFilter, dateFilter, deals])
+    filterReferralOrders()
+  }, [searchTerm, partnerFilter, dateFilter, deals, referralOrders])
 
   const loadInvoices = async () => {
     try {
@@ -63,6 +67,28 @@ export default function AdminInvoicesPage() {
         dealsData?.map(d => d.partner).filter(Boolean).map(p => [p.id, p])
       ).values()]
       setPartners(uniquePartners)
+
+      // Load completed referral orders with partner info
+      const { data: referralData, error: referralError } = await supabase
+        .from('referral_orders')
+        .select(`
+          *,
+          partner:partners (
+            id,
+            first_name,
+            last_name,
+            email,
+            organization:organizations (
+              name
+            )
+          )
+        `)
+        .eq('status', 'completed')
+        .order('created_at', { ascending: false })
+
+      if (referralError) throw referralError
+
+      setReferralOrders(referralData || [])
 
     } catch (error) {
       console.error('Error loading invoices:', error)
@@ -116,6 +142,54 @@ export default function AdminInvoicesPage() {
     }
 
     setFilteredDeals(filtered)
+  }
+
+  const filterReferralOrders = () => {
+    let filtered = [...referralOrders]
+
+    // Search filter
+    if (searchTerm) {
+      filtered = filtered.filter(order =>
+        order.client_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.client_company?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.client_email?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.product_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.partner?.first_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        order.partner?.last_name?.toLowerCase().includes(searchTerm.toLowerCase())
+      )
+    }
+
+    // Partner filter
+    if (partnerFilter !== 'all') {
+      filtered = filtered.filter(order => order.partner_id === partnerFilter)
+    }
+
+    // Date filter
+    if (dateFilter !== 'all') {
+      const now = new Date()
+      const filterDate = new Date()
+      
+      switch (dateFilter) {
+        case 'today':
+          filterDate.setHours(0, 0, 0, 0)
+          filtered = filtered.filter(order => new Date(order.created_at) >= filterDate)
+          break
+        case 'week':
+          filterDate.setDate(now.getDate() - 7)
+          filtered = filtered.filter(order => new Date(order.created_at) >= filterDate)
+          break
+        case 'month':
+          filterDate.setMonth(now.getMonth() - 1)
+          filtered = filtered.filter(order => new Date(order.created_at) >= filterDate)
+          break
+        case 'quarter':
+          filterDate.setMonth(now.getMonth() - 3)
+          filtered = filtered.filter(order => new Date(order.created_at) >= filterDate)
+          break
+      }
+    }
+
+    setFilteredReferralOrders(filtered)
   }
 
   const formatCurrency = (amount, currency = 'USD') => {
@@ -314,9 +388,30 @@ export default function AdminInvoicesPage() {
                         <Eye className="h-4 w-4 mr-1" />
                         View Deal
                       </Link>
-                      <div className="flex-1 max-w-xs">
-                        <InvoiceGenerator deal={deal} partner={deal.partner} />
-                      </div>
+                      <button
+                        onClick={() => {
+                          const generator = document.createElement('div');
+                          const root = document.createElement('div');
+                          document.body.appendChild(root);
+                          const React = require('react');
+                          const ReactDOM = require('react-dom/client');
+                          const InvoiceGen = require('@/components/InvoiceGenerator').default;
+                          const reactRoot = ReactDOM.createRoot(root);
+                          reactRoot.render(React.createElement(InvoiceGen, { deal, partner: deal.partner }));
+                          setTimeout(() => {
+                            const btn = root.querySelector('button');
+                            if (btn) btn.click();
+                            setTimeout(() => {
+                              reactRoot.unmount();
+                              document.body.removeChild(root);
+                            }, 100);
+                          }, 100);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 border border-blue-300 text-sm font-medium rounded-md text-blue-700 bg-white hover:bg-blue-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Generate & Download Invoice
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -348,6 +443,199 @@ export default function AdminInvoicesPage() {
             </div>
           </div>
         )}
+
+        {/* Referral Orders Section */}
+        <div className="mt-12 pt-8 border-t-2 border-gray-200">
+          <div className="mb-6 flex items-center">
+            <ShoppingCart className="h-6 w-6 text-green-600 mr-3" />
+            <h2 className="text-xl font-semibold text-gray-900">Referral Order Invoices</h2>
+          </div>
+
+          {filteredReferralOrders.length === 0 ? (
+            <div className="text-center py-12 bg-gray-50 rounded-lg">
+              <ShoppingCart className="mx-auto h-12 w-12 text-gray-400" />
+              <h3 className="mt-2 text-sm font-medium text-gray-900">No referral order invoices found</h3>
+              <p className="mt-1 text-sm text-gray-500">
+                {searchTerm || partnerFilter !== 'all' || dateFilter !== 'all' 
+                  ? 'Try adjusting your search or filters' 
+                  : 'Completed referral orders will appear here'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {filteredReferralOrders.map((order) => (
+                <div key={order.id} className="bg-white border border-gray-200 rounded-lg overflow-hidden hover:border-green-300 transition-colors">
+                  <div className="p-6">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex-1">
+                        <div className="flex items-center space-x-3 mb-2">
+                          <h3 className="text-lg font-semibold text-gray-900">
+                            {order.client_name}
+                          </h3>
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                            Completed
+                          </span>
+                        </div>
+                        <p className="text-sm text-gray-600 mb-2">
+                          Product: <span className="font-medium">{order.product_name}</span>
+                        </p>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+                      {/* Client Info */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase">Client</h4>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                          {order.client_company || 'N/A'}
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Mail className="h-4 w-4 mr-2 text-gray-400" />
+                          {order.client_email}
+                        </div>
+                      </div>
+
+                      {/* Partner Info */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase">Referring Partner</h4>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <User className="h-4 w-4 mr-2 text-gray-400" />
+                          {order.partner ? (
+                            <span>
+                              {order.partner.first_name} {order.partner.last_name}
+                            </span>
+                          ) : (
+                            'No Partner'
+                          )}
+                        </div>
+                        {order.partner?.organization && (
+                          <div className="flex items-center text-sm text-gray-600">
+                            <Building2 className="h-4 w-4 mr-2 text-gray-400" />
+                            {order.partner.organization.name}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Order Info */}
+                      <div className="space-y-2">
+                        <h4 className="text-xs font-semibold text-gray-500 uppercase">Order Details</h4>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <DollarSign className="h-4 w-4 mr-2 text-gray-400" />
+                          <div>
+                            <span className="font-semibold text-gray-900">
+                              {formatCurrency(order.order_value, order.currency)}
+                            </span>
+                            {order.commission_amount && (
+                              <span className="ml-2 text-xs text-green-600">
+                                (Commission: {formatCurrency(order.commission_amount, order.currency)})
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                        <div className="flex items-center text-sm text-gray-600">
+                          <Calendar className="h-4 w-4 mr-2 text-gray-400" />
+                          {new Date(order.created_at).toLocaleDateString()}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Actions */}
+                    <div className="flex items-center space-x-3">
+                      <Link
+                        href={`/admin/support/${order.id}`}
+                        className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        <Eye className="h-4 w-4 mr-1" />
+                        View Order
+                      </Link>
+                      <button
+                        onClick={() => {
+                          const generator = document.createElement('div');
+                          const root = document.createElement('div');
+                          document.body.appendChild(root);
+                          const React = require('react');
+                          const ReactDOM = require('react-dom/client');
+                          const RefInvoiceGen = require('@/components/ReferralInvoiceGenerator').default;
+                          const reactRoot = ReactDOM.createRoot(root);
+                          reactRoot.render(React.createElement(RefInvoiceGen, { referralOrder: order, partner: order.partner }));
+                          setTimeout(() => {
+                            const btn = root.querySelector('button');
+                            if (btn) btn.click();
+                            setTimeout(() => {
+                              reactRoot.unmount();
+                              document.body.removeChild(root);
+                            }, 100);
+                          }, 100);
+                        }}
+                        className="inline-flex items-center px-3 py-1.5 border border-green-300 text-sm font-medium rounded-md text-green-700 bg-white hover:bg-green-50 focus:outline-none focus:ring-2 focus:ring-green-500"
+                      >
+                        <Download className="h-4 w-4 mr-1" />
+                        Generate & Download Invoice
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
+
+          {/* Referral Orders Summary Stats */}
+          {filteredReferralOrders.length > 0 && (
+            <div className="mt-6 bg-green-50 rounded-lg p-6 border border-green-100">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-green-900">Total Referral Orders</p>
+                  <p className="mt-1 text-2xl font-bold text-green-600">{filteredReferralOrders.length}</p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900">Total Order Value</p>
+                  <p className="mt-1 text-2xl font-bold text-green-600">
+                    {formatCurrency(filteredReferralOrders.reduce((sum, order) => sum + (order.order_value || 0), 0))}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-green-900">Total Commissions</p>
+                  <p className="mt-1 text-2xl font-bold text-green-600">
+                    {formatCurrency(filteredReferralOrders.reduce((sum, order) => sum + (order.commission_amount || 0), 0))}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Overall Summary */}
+          {(filteredDeals.length > 0 || filteredReferralOrders.length > 0) && (
+            <div className="mt-6 bg-gradient-to-r from-blue-50 to-green-50 rounded-lg p-6 border-2 border-gray-200">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">Overall Summary</h3>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Total Invoices</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {filteredDeals.length + filteredReferralOrders.length}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Combined Revenue</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {formatCurrency(
+                      filteredDeals.reduce((sum, deal) => sum + (deal.deal_value || 0), 0) +
+                      filteredReferralOrders.reduce((sum, order) => sum + (order.order_value || 0), 0)
+                    )}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-sm font-medium text-gray-700">Total Commissions</p>
+                  <p className="mt-1 text-2xl font-bold text-gray-900">
+                    {formatCurrency(
+                      filteredReferralOrders.reduce((sum, order) => sum + (order.commission_amount || 0), 0)
+                    )}
+                  </p>
+                </div>
+              </div>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   )
