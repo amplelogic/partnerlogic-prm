@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import InvoiceGenerator from '@/components/InvoiceGenerator'
@@ -13,6 +13,9 @@ import { CURRENCIES } from '@/lib/currencyUtils'
 
 
 export default function DealDetailPage({ params }) {
+  const unwrappedParams = use(params)
+  const dealId = unwrappedParams.id
+  
   const [deal, setDeal] = useState(null)
   const [partner, setPartner] = useState(null)
   const [loading, setLoading] = useState(true)
@@ -20,13 +23,44 @@ export default function DealDetailPage({ params }) {
 
   useEffect(() => {
     loadDealData()
-  }, [params.id])
+  }, [dealId])
 
   const loadDealData = async () => {
     try {
       setLoading(true)
 
-      // Get deal with partner info
+      // Get current partner manager
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) {
+        setLoading(false)
+        return
+      }
+
+      const { data: managerData } = await supabase
+        .from('partner_managers')
+        .select('*')
+        .eq('auth_user_id', user.id)
+        .single()
+
+      if (!managerData) {
+        setLoading(false)
+        return
+      }
+
+      // Get partners assigned to this manager
+      const { data: partnersData } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('partner_manager_id', managerData.id)
+
+      const partnerIds = partnersData?.map(p => p.id) || []
+
+      if (partnerIds.length === 0) {
+        setLoading(false)
+        return
+      }
+
+      // Get deal with partner info - only if it belongs to assigned partners
       const { data: dealData, error: dealError } = await supabase
         .from('deals')
         .select(`
@@ -40,10 +74,15 @@ export default function DealDetailPage({ params }) {
             organization:organizations(*)
           )
         `)
-        .eq('id', params.id)
+        .eq('id', dealId)
+        .in('partner_id', partnerIds)
         .single()
 
-      if (dealError) throw dealError
+      if (dealError) {
+        console.error('Error loading deal:', dealError)
+        setLoading(false)
+        return
+      }
 
       setDeal(dealData)
       setPartner(dealData.partners)
