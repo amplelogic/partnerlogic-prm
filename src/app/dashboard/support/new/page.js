@@ -10,7 +10,7 @@ import {
   Headphones, Wrench, Users, FileText, Upload,
   Info, Clock
 } from 'lucide-react'
-import { notifyAdmins, NotificationTemplates } from '@/lib/notifications'
+import { notifyAdmins, notifyPartnerManager, NotificationTemplates } from '@/lib/notifications'
 
 export default function NewSupportTicketPage() {
   const [partner, setPartner] = useState(null)
@@ -206,6 +206,16 @@ export default function NewSupportTicketPage() {
           referenceId: data[0].id,
           referenceType: 'support_ticket'
         })
+        
+        // Notify partner manager if assigned
+        if (partner.partner_manager_id) {
+          await notifyPartnerManager({
+            partnerId: partner.id,
+            ...notification,
+            referenceId: data[0].id,
+            referenceType: 'support_ticket'
+          })
+        }
       } catch (notificationError) {
         console.error('Error sending notification:', notificationError)
       }

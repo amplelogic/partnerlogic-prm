@@ -6,7 +6,7 @@ import Link from 'next/link'
 import { 
   Search, Filter, Eye, MessageSquare, AlertCircle, 
   CheckCircle, Clock, Headphones, Wrench, Users, 
-  FileText, ChevronDown, User, Building2
+  FileText, ChevronDown, User, Building2, Trash2
 } from 'lucide-react'
 
 export default function AdminSupportPage() {
@@ -22,6 +22,7 @@ export default function AdminSupportPage() {
   const [sortOrder, setSortOrder] = useState('desc')
   const [showFilters, setShowFilters] = useState(false)
   const [partners, setPartners] = useState([])
+  const [deleting, setDeleting] = useState(null)
 
   const supabase = createClient()
 
@@ -139,6 +140,32 @@ export default function AdminSupportPage() {
     })
 
     setFilteredTickets(filtered)
+  }
+
+  const handleDelete = async (ticketId) => {
+    if (!confirm('Are you sure you want to delete this support ticket? This action cannot be undone.')) {
+      return
+    }
+
+    try {
+      setDeleting(ticketId)
+      
+      const { error } = await supabase
+        .from('support_tickets')
+        .delete()
+        .eq('id', ticketId)
+
+      if (error) throw error
+
+      // Remove from local state
+      setTickets(tickets.filter(t => t.id !== ticketId))
+      
+    } catch (error) {
+      console.error('Error deleting ticket:', error)
+      alert('Failed to delete ticket. Please try again.')
+    } finally {
+      setDeleting(null)
+    }
   }
 
   const getStatusColor = (status) => {
@@ -434,11 +461,25 @@ export default function AdminSupportPage() {
                       <div className="flex items-center space-x-2 ml-4">
                         <Link
                           href={`/admin/support/${ticket.id}`}
-                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50"
+                          className="inline-flex items-center px-3 py-1.5 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-purple-500"
                         >
                           <Eye className="h-4 w-4 mr-1" />
                           View
                         </Link>
+                        <button
+                          onClick={() => handleDelete(ticket.id)}
+                          disabled={deleting === ticket.id}
+                          className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                        >
+                          {deleting === ticket.id ? (
+                            <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-600"></div>
+                          ) : (
+                            <>
+                              <Trash2 className="h-4 w-4 mr-1" />
+                              Delete
+                            </>
+                          )}
+                        </button>
                       </div>
                     </div>
                   </div>
