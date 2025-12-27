@@ -54,14 +54,27 @@ export default function AdminInvoicesPage() {
               name,
               type
             )
-          )
+          ),
+          deal_activities!inner(created_at, activity_type)
         `)
         .or('stage.eq.closed_won,admin_stage.eq.closed_won')
-        .order('created_at', { ascending: false })
+        .order('updated_at', { ascending: false })
 
       if (dealsError) throw dealsError
 
-      setDeals(dealsData || [])
+      // Process deals to add closed_won_date from deal_activities
+      const processedDeals = (dealsData || []).map(deal => {
+        const closedWonActivity = deal.deal_activities?.find(
+          activity => activity.activity_type === 'stage_updated' && 
+                     (deal.stage === 'closed_won' || deal.admin_stage === 'closed_won')
+        )
+        return {
+          ...deal,
+          closed_won_date: closedWonActivity?.created_at || deal.updated_at
+        }
+      })
+
+      setDeals(processedDeals)
 
       // Extract unique partners for filter
       const uniquePartners = [...new Map(
@@ -117,7 +130,7 @@ export default function AdminInvoicesPage() {
       filtered = filtered.filter(deal => deal.partner_id === partnerFilter)
     }
 
-    // Date filter
+    // Date filter - use closed_won_date instead of created_at
     if (dateFilter !== 'all') {
       const now = new Date()
       const filterDate = new Date()
@@ -125,19 +138,19 @@ export default function AdminInvoicesPage() {
       switch (dateFilter) {
         case 'today':
           filterDate.setHours(0, 0, 0, 0)
-          filtered = filtered.filter(deal => new Date(deal.created_at) >= filterDate)
+          filtered = filtered.filter(deal => new Date(deal.closed_won_date) >= filterDate)
           break
         case 'week':
           filterDate.setDate(now.getDate() - 7)
-          filtered = filtered.filter(deal => new Date(deal.created_at) >= filterDate)
+          filtered = filtered.filter(deal => new Date(deal.closed_won_date) >= filterDate)
           break
         case 'month':
           filterDate.setMonth(now.getMonth() - 1)
-          filtered = filtered.filter(deal => new Date(deal.created_at) >= filterDate)
+          filtered = filtered.filter(deal => new Date(deal.closed_won_date) >= filterDate)
           break
         case 'quarter':
           filterDate.setMonth(now.getMonth() - 3)
-          filtered = filtered.filter(deal => new Date(deal.created_at) >= filterDate)
+          filtered = filtered.filter(deal => new Date(deal.closed_won_date) >= filterDate)
           break
       }
     }
@@ -295,7 +308,7 @@ export default function AdminInvoicesPage() {
                 <select
                   value={partnerFilter}
                   onChange={(e) => setPartnerFilter(e.target.value)}
-                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black border"
                 >
                   <option value="all">All Partners</option>
                   {partners.map((partner) => (
@@ -314,7 +327,7 @@ export default function AdminInvoicesPage() {
                 <select
                   value={dateFilter}
                   onChange={(e) => setDateFilter(e.target.value)}
-                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  className="block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md text-black border"
                 >
                   <option value="all">All Time</option>
                   <option value="today">Today</option>

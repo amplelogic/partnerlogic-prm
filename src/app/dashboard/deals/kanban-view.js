@@ -194,13 +194,26 @@ export default function KanbanView({ deals, onDealUpdate }) {
 
     // Check if deal is being moved to closed_won
     if (activeDeal.stage === 'closed_won') {
-      // Show confirmation modal
-      setPendingClosedWonDeal(activeDeal)
-      setShowClosedWonModal(true)
-      return // Don't update database yet
+      // Check if invoice has already been sent (deal was previously closed_won)
+      try {
+        const { data: dealData } = await supabase
+          .from('deals')
+          .select('invoice_sent_at')
+          .eq('id', activeDeal.id)
+          .single()
+
+        // Only show modal if invoice hasn't been sent yet
+        if (!dealData?.invoice_sent_at) {
+          setPendingClosedWonDeal(activeDeal)
+          setShowClosedWonModal(true)
+          return // Don't update database yet
+        }
+      } catch (error) {
+        console.error('Error checking invoice status:', error)
+      }
     }
 
-    // Update in database for other stages
+    // Update in database for other stages or if invoice already sent
     await updateDealStage(activeDeal)
   }
 
@@ -238,9 +251,42 @@ export default function KanbanView({ deals, onDealUpdate }) {
 
   const handleConfirmClosedWon = async () => {
     if (pendingClosedWonDeal) {
-      await updateDealStage(pendingClosedWonDeal)
-      setShowClosedWonModal(false)
-      setPendingClosedWonDeal(null)
+      try {
+        // Update deal stage and set invoice_sent_at timestamp
+        const { error } = await supabase
+          .from('deals')
+          .update({
+            stage: pendingClosedWonDeal.stage,
+            invoice_sent_at: new Date().toISOString(),
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', pendingClosedWonDeal.id)
+
+        if (error) throw error
+
+        // Log activity
+        await supabase
+          .from('deal_activities')
+          .insert([{
+            deal_id: pendingClosedWonDeal.id,
+            activity_type: 'stage_updated',
+            description: `Stage updated to ${PARTNER_STAGES.find(s => s.id === pendingClosedWonDeal.stage)?.label}`
+          }])
+
+        // Notify parent component
+        if (onDealUpdate) {
+          onDealUpdate(localDeals)
+        }
+
+        setShowClosedWonModal(false)
+        setPendingClosedWonDeal(null)
+      } catch (error) {
+        console.error('Error updating deal:', error)
+        // Revert on error
+        setLocalDeals(deals)
+        setShowClosedWonModal(false)
+        setPendingClosedWonDeal(null)
+      }
     }
   }
 
