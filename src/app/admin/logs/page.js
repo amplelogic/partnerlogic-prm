@@ -408,7 +408,7 @@ export default function AdminLogsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Support Tickets</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {filteredLogs.filter(l => l.type === 'support_ticket').length}
+                  {filteredLogs.filter(l => l.type === 'support_ticket' || (l.type === 'notification' || l.activity_type === 'support_ticket_created')).length}
                 </p>
               </div>
               <FileText className="h-8 w-8 text-purple-500" />

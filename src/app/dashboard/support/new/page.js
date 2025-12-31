@@ -120,7 +120,7 @@ export default function NewSupportTicketPage() {
           .from('deals')
           .select('id, customer_name, customer_company, stage')
           .eq('partner_id', partnerData.id)
-          .not('stage', 'in', ['closed_won', 'closed_lost'])
+          .not('stage', 'in', '(closed_won,closed_lost)')
           .order('created_at', { ascending: false })
 
         setDeals(dealsData || [])
@@ -471,7 +471,7 @@ export default function NewSupportTicketPage() {
                       id="deal_id"
                       value={formData.deal_id}
                       onChange={handleInputChange}
-                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      className="block w-full px-3 py-2 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-black"
                     >
                       <option value="">Select a related deal (optional)</option>
                       {deals.map(deal => (

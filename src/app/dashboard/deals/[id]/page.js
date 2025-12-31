@@ -11,7 +11,7 @@ import {
   DollarSign, Calendar, Tag, MessageSquare, Upload,
   Activity, CheckCircle, Clock, AlertCircle, Plus,
   Phone, FileText, handshake,
-  HandshakeIcon
+  HandshakeIcon, Download, File, FileImage, FileVideo, Paperclip
 } from 'lucide-react'
 import { CURRENCIES } from '@/lib/currencyUtils'
 
@@ -25,6 +25,7 @@ export default function DealDetailsPage({ params }) {
   const [newNote, setNewNote] = useState('')
   const [addingNote, setAddingNote] = useState(false)
   const [newStage, setNewStage] = useState('')
+  const [attachments, setAttachments] = useState([])
   
   const router = useRouter()
   const supabase = createClient()
@@ -96,6 +97,17 @@ export default function DealDetailsPage({ params }) {
 
         setDeal(dealData)
         setNewStage(dealData.stage)
+
+        // Parse attachments if they exist
+        if (dealData.attachments) {
+          try {
+            const parsedAttachments = JSON.parse(dealData.attachments)
+            setAttachments(parsedAttachments || [])
+          } catch (e) {
+            console.error('Error parsing attachments:', e)
+            setAttachments([])
+          }
+        }
 
         // Get deal activities
         const { data: activitiesData } = await supabase
@@ -213,6 +225,22 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
       case 'file_uploaded': return Upload
       default: return Activity
     }
+  }
+
+  const getFileIcon = (file) => {
+    if (!file || !file.type || typeof file.type !== 'string') return File
+    if (file.type.startsWith('video/')) return FileVideo
+    if (file.type.startsWith('image/')) return FileImage
+    if (file.type.includes('pdf') || file.type.includes('document')) return FileText
+    return File
+  }
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
   }
 
   if (loading) {
@@ -539,6 +567,45 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
 
           {/* Sidebar */}
           <div className="space-y-6">
+            {/* Attachments */}
+            {attachments.length > 0 && (
+              <div className="bg-white rounded-xl shadow-sm border border-gray-200">
+                <div className="p-6 border-b border-gray-200">
+                  <h2 className="text-lg font-semibold text-gray-900 flex items-center">
+                    <Paperclip className="h-5 w-5 mr-2 text-gray-400" />
+                    Attachments ({attachments.length})
+                  </h2>
+                </div>
+                
+                <div className="p-6 space-y-3">
+                  {attachments.map((file, index) => {
+                    const FileIcon = getFileIcon(file.type)
+                    return (
+                      <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200 hover:bg-gray-100 transition-colors">
+                        <div className="flex items-center space-x-3 flex-1 min-w-0">
+                          <FileIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                          <div className="flex-1 min-w-0">
+                            <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                            <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                          </div>
+                        </div>
+                        <a
+                          href={file.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          download={file.name}
+                          className="ml-2 p-2 text-blue-600 hover:text-blue-800 hover:bg-blue-50 rounded transition-colors"
+                          title="Download file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </a>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
             {/* Quick Actions */}
             {(deal.stage === 'closed_won' || deal.admin_stage === 'closed_won') && (
               <div className="bg-white rounded-xl shadow-sm border border-gray-200">

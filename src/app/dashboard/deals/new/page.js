@@ -5,7 +5,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, User, Mail, Building2, DollarSign, AlertTriangle, CheckCircle } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Building2, DollarSign, AlertTriangle, CheckCircle, Upload, X, File, FileText, FileImage, FileVideo, Paperclip } from 'lucide-react'
 import { getCurrencyOptions } from '@/lib/currencyUtils'
 import { notifyAdmins, notifyPartnerManager, NotificationTemplates } from '@/lib/notifications'
 
@@ -16,6 +16,8 @@ export default function NewDealPage() {
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
   const [currencyOptions, setCurrencyOptions] = useState([])
+  const [attachments, setAttachments] = useState([])
+  const [uploading, setUploading] = useState(false)
   
   const [formData, setFormData] = useState({
   customer_name: '',
@@ -144,6 +146,75 @@ export default function NewDealPage() {
     }
   }
 
+  const handleFileUpload = async (e) => {
+    const files = Array.from(e.target.files)
+    if (files.length === 0) return
+
+    setUploading(true)
+    const newAttachments = []
+
+    try {
+      for (const file of files) {
+        // Generate unique filename
+        const fileExt = file.name.split('.').pop()
+        const fileName = `${Date.now()}-${Math.random().toString(36).substring(7)}.${fileExt}`
+        const filePath = `deal-attachments/${fileName}`
+
+        // Upload to Supabase Storage
+        const { data, error } = await supabase.storage
+          .from('deal-files')
+          .upload(filePath, file, {
+            cacheControl: '3600',
+            upsert: false
+          })
+
+        if (error) throw error
+
+        // Get public URL
+        const { data: { publicUrl } } = supabase.storage
+          .from('deal-files')
+          .getPublicUrl(filePath)
+
+        newAttachments.push({
+          name: file.name,
+          url: publicUrl,
+          type: file.type,
+          size: file.size,
+          uploaded_at: new Date().toISOString()
+        })
+      }
+
+      setAttachments([...attachments, ...newAttachments])
+    } catch (error) {
+      console.error('Error uploading files:', error)
+      alert('Error uploading files: ' + error.message)
+    } finally {
+      setUploading(false)
+    }
+  }
+
+  const removeAttachment = (index) => {
+    if (confirm('Remove this file?')) {
+      setAttachments(attachments.filter((_, i) => i !== index))
+    }
+  }
+
+  const getFileIcon = (type) => {
+    if (!type) return File
+    if (type.startsWith('video/')) return FileVideo
+    if (type.startsWith('image/')) return FileImage
+    if (type.includes('pdf') || type.includes('document')) return FileText
+    return File
+  }
+
+  const formatFileSize = (bytes) => {
+    if (!bytes || bytes === 0) return '0 Bytes'
+    const k = 1024
+    const sizes = ['Bytes', 'KB', 'MB', 'GB']
+    const i = Math.floor(Math.log(bytes) / Math.log(k))
+    return Math.round(bytes / Math.pow(k, i) * 100) / 100 + ' ' + sizes[i]
+  }
+
   const validateForm = () => {
     const newErrors = {}
 
@@ -193,8 +264,12 @@ const handleSubmit = async (e) => {
       priority: formData.priority,
       support_type_needed: formData.support_type_needed,
       notes: formData.notes.trim() || null,
-      expected_close_date: formData.expected_close_date || null
+      expected_close_date: formData.expected_close_date || null,
+      attachments: attachments.length > 0 ? JSON.stringify(attachments) : null
     }
+
+    console.log('📎 Attachments being saved:', attachments)
+    console.log('📄 Deal data:', dealData)
 
     const { data, error } = await supabase
       .from('deals')
@@ -652,21 +727,79 @@ if (emailError) {
                 Additional Information
               </h3>
               
-              <div>
-                <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
-                  Notes & Requirements
-                </label>
-                <textarea
-                  name="notes"
-                  id="notes"
-                  rows={4}
-                  value={formData.notes}
-                  onChange={handleInputChange}
-                  className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                  placeholder="Add any additional notes, requirements, or context about this deal..."
-                />
+              <div className="space-y-6">
+                <div>
+                  <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+                    Notes & Requirements
+                  </label>
+                  <textarea
+                    name="notes"
+                    id="notes"
+                    rows={4}
+                    value={formData.notes}
+                    onChange={handleInputChange}
+                    className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    placeholder="Enter any additional details about this deal..."
+                  />
+                </div>
+
+                {/* File Attachments */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    <Paperclip className="inline h-4 w-4 mr-1" />
+                    File Attachments
+                  </label>
+                  
+                  <input
+                    type="file"
+                    multiple
+                    onChange={handleFileUpload}
+                    disabled={uploading}
+                    className="block w-full text-sm text-gray-900 border border-gray-300 rounded-lg cursor-pointer bg-white focus:outline-none file:mr-4 file:py-2 file:px-4 file:rounded-l-lg file:border-0 file:text-sm file:font-semibold file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100 disabled:opacity-50"
+                  />
+                  
+                  <p className="text-xs text-gray-500 mt-1">
+                    Upload any relevant documents, proposals, contracts, or files (no limit on file count or type)
+                  </p>
+
+                  {uploading && (
+                    <div className="mt-2 text-sm text-blue-600 flex items-center">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600 mr-2"></div>
+                      Uploading files...
+                    </div>
+                  )}
+
+                  {/* Show uploaded files */}
+                  {attachments.length > 0 && (
+                    <div className="mt-3 space-y-2">
+                      <p className="text-sm font-medium text-gray-700">{attachments.length} file(s) attached:</p>
+                      {attachments.map((file, index) => {
+                        const FileIcon = getFileIcon(file.type)
+                        return (
+                          <div key={index} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg border border-gray-200">
+                            <div className="flex items-center space-x-3 flex-1 min-w-0">
+                              <FileIcon className="h-5 w-5 text-gray-400 flex-shrink-0" />
+                              <div className="flex-1 min-w-0">
+                                <p className="text-sm font-medium text-gray-900 truncate">{file.name}</p>
+                                <p className="text-xs text-gray-500">{formatFileSize(file.size)}</p>
+                              </div>
+                            </div>
+                            <button
+                              type="button"
+                              onClick={() => removeAttachment(index)}
+                              className="ml-2 p-1 text-red-600 hover:text-red-800 hover:bg-red-50 rounded"
+                            >
+                              <X className="h-4 w-4" />
+                            </button>
+                          </div>
+                        )
+                      })}
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
+
 
             {/* Partner Information Display */}
             <div className="bg-gray-50 rounded-lg p-4">
