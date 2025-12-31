@@ -9,7 +9,7 @@ import {
   Users, BarChart3, FileText, Settings, Shield,
   Menu, X, LogOut, Search, Home, Building2,
   User, ChevronDown, BookOpen, Headphones,
-  TrendingUp, Package, DollarSign
+  TrendingUp, Package, DollarSign, Activity
 } from 'lucide-react'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -87,6 +87,7 @@ export default function AdminLayout({ children }) {
     { name: 'Knowledge Base', href: '/admin/knowledge', icon: FileText, current: pathname.startsWith('/admin/knowledge') },
     { name: 'Products', href: '/admin/products', icon: Package, current: pathname.startsWith('/admin/products') },
     { name: 'Support', href: '/admin/support', icon: Headphones, current: pathname.startsWith('/admin/support') },
+    { name: 'Logs', href: '/admin/logs', icon: Activity, current: pathname.startsWith('/admin/logs') },
     { name: 'Settings', href: '/admin/settings', icon: Settings, current: pathname === '/admin/settings' },
   ]
 
