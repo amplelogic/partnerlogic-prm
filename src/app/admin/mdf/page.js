@@ -378,6 +378,9 @@ export default function AdminMDFPage() {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                       Date
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200">
@@ -435,6 +438,15 @@ export default function AdminMDFPage() {
                             <Calendar className="h-4 w-4 mr-1" />
                             {new Date(request.created_at).toLocaleDateString()}
                           </div>
+                        </td>
+                        <td className="px-6 py-4 whitespace-nowrap text-sm">
+                          <Link
+                            href={`/admin/mdf/${request.id}`}
+                            className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 transition-colors"
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            View
+                          </Link>
                         </td>
                       </tr>
                     )

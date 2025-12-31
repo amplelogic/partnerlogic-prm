@@ -77,6 +77,7 @@ export default function AdminLayout({ children }) {
     { name: 'Dashboard', href: '/admin', icon: Home, current: pathname === '/admin' },
     { name: 'All Deals', href: '/admin/deals', icon: BarChart3, current: pathname.startsWith('/admin/deals') },
     { name: 'Invoices', href: '/admin/invoices', icon: FileText, current: pathname.startsWith('/admin/invoices') },
+    { name: 'MDF', href: '/admin/mdf', icon: DollarSign, current: pathname.startsWith('/admin/mdf') },
     { name: 'Partners', href: '/admin/partners', icon: Building2, current: pathname.startsWith('/admin/partners') },
     { name: 'Tier Management', href: '/admin/tier-management', icon: TrendingUp, current: pathname.startsWith('/admin/tier-management') },
     { name: 'Currencies', href: '/admin/currencies', icon: DollarSign, current: pathname.startsWith('/admin/currencies') },

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -11,6 +11,7 @@ import {
 } from 'lucide-react'
 
 export default function PartnerDetailPage({ params }) {
+  const unwrappedParams = use(params)
   const [partner, setPartner] = useState(null)
   const [stats, setStats] = useState({
     totalDeals: 0,
@@ -24,8 +25,10 @@ export default function PartnerDetailPage({ params }) {
   const supabase = createClient()
 
   useEffect(() => {
-    loadPartnerData()
-  }, [params.id])
+    if (unwrappedParams.id) {
+      loadPartnerData()
+    }
+  }, [unwrappedParams.id])
 
   const loadPartnerData = async () => {
     try {
@@ -38,7 +41,7 @@ export default function PartnerDetailPage({ params }) {
           *,
           organization:organizations(*)
         `)
-        .eq('id', params.id)
+        .eq('id', unwrappedParams.id)
         .single()
 
       if (partnerError) throw partnerError
@@ -50,11 +53,11 @@ export default function PartnerDetailPage({ params }) {
         supabase
           .from('deals')
           .select('deal_value, stage')
-          .eq('partner_id', params.id),
+          .eq('partner_id', unwrappedParams.id),
         supabase
           .from('support_tickets')
           .select('id', { count: 'exact', head: true })
-          .eq('partner_id', params.id)
+          .eq('partner_id', unwrappedParams.id)
           .in('status', ['open', 'in_progress'])
       ])
 
