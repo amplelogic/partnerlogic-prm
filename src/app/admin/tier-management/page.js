@@ -58,6 +58,7 @@ export default function TierManagementPage() {
         max_revenue: 50000,
         discount_percentage: 5,
         mdf_allocation: 5000,
+        bonus_amount: 1000,
         tier_order: 1,
         is_active: true
       },
@@ -68,6 +69,7 @@ export default function TierManagementPage() {
         max_revenue: 150000,
         discount_percentage: 10,
         mdf_allocation: 10000,
+        bonus_amount: 5000,
         tier_order: 2,
         is_active: true
       },
@@ -78,6 +80,7 @@ export default function TierManagementPage() {
         max_revenue: 300000,
         discount_percentage: 15,
         mdf_allocation: 25000,
+        bonus_amount: 15000,
         tier_order: 3,
         is_active: true
       },
@@ -85,9 +88,10 @@ export default function TierManagementPage() {
         tier_name: 'platinum',
         tier_label: 'Platinum',
         min_revenue: 300000,
-        max_revenue: null, // Unlimited
+        max_revenue: 1000000,
         discount_percentage: 20,
         mdf_allocation: 50000,
+        bonus_amount: 35000,
         tier_order: 4,
         is_active: true
       }
@@ -186,6 +190,7 @@ export default function TierManagementPage() {
             max_revenue: tier.max_revenue,
             discount_percentage: tier.discount_percentage,
             mdf_allocation: tier.mdf_allocation,
+            bonus_amount: tier.bonus_amount,
             tier_order: tier.tier_order,
             is_active: tier.is_active,
             updated_at: new Date().toISOString()
@@ -475,6 +480,24 @@ export default function TierManagementPage() {
                     />
                     <p className="mt-1 text-xs text-gray-500">Annual marketing fund (USD)</p>
                   </div>
+
+                  {/* Bonus Amount */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2 flex items-center">
+                      <DollarSign className="h-4 w-4 mr-1 text-green-600" />
+                      Bonus Amount
+                    </label>
+                    <input
+                      type="number"
+                      value={tier.bonus_amount || 0}
+                      onChange={(e) => handleTierChange(index, 'bonus_amount', e.target.value)}
+                      className="block w-full px-3 py-2 text-black border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                      placeholder="0"
+                      min="0"
+                      step="100"
+                    />
+                    <p className="mt-1 text-xs text-gray-500">Bonus when tier max revenue is achieved</p>
+                  </div>
                 </div>
 
                 {/* Revenue Range Preview */}
@@ -483,20 +506,22 @@ export default function TierManagementPage() {
                     <span className="text-sm font-medium text-gray-700">Tier Benefits Summary</span>
                     <ArrowRight className="h-4 w-4 text-gray-400" />
                   </div>
-                  <div className="grid grid-cols-3 gap-4 text-center">
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
                     <div>
                       <div className="text-2xl font-bold text-gray-900">{tier.discount_percentage}%</div>
-                      <div className="text-xs text-gray-600">Discount</div>
+                      <div className="text-xs text-gray-600">Commission</div>
                     </div>
                     <div>
                       <div className="text-2xl font-bold text-gray-900">{formatCurrency(tier.mdf_allocation)}</div>
                       <div className="text-xs text-gray-600">MDF Fund</div>
                     </div>
                     <div>
-                      <div className="text-2xl font-bold text-gray-900">
-                        {formatCurrency(tier.max_revenue === null ? tier.min_revenue : tier.max_revenue - tier.min_revenue)}
-                      </div>
-                      <div className="text-xs text-gray-600">Revenue Range</div>
+                      <div className="text-2xl font-bold text-green-600">{formatCurrency(tier.max_revenue)}</div>
+                      <div className="text-xs text-gray-600">Bonus Target</div>
+                    </div>
+                    <div>
+                      <div className="text-2xl font-bold text-green-600">{formatCurrency(tier.bonus_amount || 0)}</div>
+                      <div className="text-xs text-gray-600">Bonus Payout</div>
                     </div>
                   </div>
                 </div>

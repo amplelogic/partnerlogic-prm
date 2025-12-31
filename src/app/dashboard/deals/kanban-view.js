@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
@@ -9,14 +9,28 @@ import { DollarSign, ExternalLink } from 'lucide-react'
 import Link from 'next/link'
 import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
 
-// PARTNER STAGES - Only up to closed_lost
-const PARTNER_STAGES = [
+// SALES STAGES - For all partners
+const SALES_STAGES = [
   { id: 'new_deal', label: 'New Deal', color: 'bg-gray-100 border-gray-300' },
   { id: 'need_analysis', label: 'Need Analysis', color: 'bg-blue-100 border-blue-300' },
   { id: 'proposal', label: 'Proposal', color: 'bg-yellow-100 border-yellow-300' },
   { id: 'negotiation', label: 'Negotiation', color: 'bg-purple-100 border-purple-300' },
   { id: 'closed_won', label: 'Closed Won', color: 'bg-green-100 border-green-300' },
   { id: 'closed_lost', label: 'Closed Lost', color: 'bg-red-100 border-red-300' }
+]
+
+// IMPLEMENTATION STAGES - Only for full-cycle partners
+const IMPLEMENTATION_STAGES = [
+  { id: 'urs', label: 'URS', color: 'bg-cyan-100 border-cyan-300' },
+  { id: 'base_deployment', label: 'Base Deployment', color: 'bg-indigo-100 border-indigo-300' },
+  { id: 'gap_assessment', label: 'Gap Assessment', color: 'bg-pink-100 border-pink-300' },
+  { id: 'development', label: 'Development', color: 'bg-orange-100 border-orange-300' },
+  { id: 'uat', label: 'UAT', color: 'bg-teal-100 border-teal-300' },
+  { id: 'iq', label: 'IQ', color: 'bg-lime-100 border-lime-300' },
+  { id: 'oq', label: 'OQ', color: 'bg-amber-100 border-amber-300' },
+  { id: 'deployment', label: 'Deployment', color: 'bg-emerald-100 border-emerald-300' },
+  { id: 'pq', label: 'PQ', color: 'bg-violet-100 border-violet-300' },
+  { id: 'live', label: 'LIVE', color: 'bg-green-200 border-green-400' }
 ]
 
 // Deal Card Component (Draggable) - Compact Version
@@ -120,17 +134,86 @@ function KanbanColumn({ stage, deals, activeId }) {
 }
  
 // Main Kanban Board Component
-export default function KanbanView({ deals, onDealUpdate }) {
+export default function KanbanView({ deals, onDealUpdate, partnerOrganizationType }) {
   const [activeId, setActiveId] = useState(null)
   const [localDeals, setLocalDeals] = useState(deals)
   const [showClosedWonModal, setShowClosedWonModal] = useState(false)
   const [pendingClosedWonDeal, setPendingClosedWonDeal] = useState(null)
   const supabase = createClient()
+  
+  // Determine which stages to show based on partner type (memoized to prevent infinite loops)
+  const PARTNER_STAGES = useMemo(() => {
+    return partnerOrganizationType === 'full_cycle' 
+      ? [...SALES_STAGES, ...IMPLEMENTATION_STAGES] 
+      : SALES_STAGES
+  }, [partnerOrganizationType])
+  
+  // Debug log to verify partner type
+  useEffect(() => {
+    console.log('Partner Organization Type:', partnerOrganizationType)
+    console.log('Total Stages:', PARTNER_STAGES.length)
+    console.log('Stages:', PARTNER_STAGES.map(s => s.label))
+  }, [partnerOrganizationType, PARTNER_STAGES])
 
-  // ADD THIS: Update localDeals when deals prop changes
+  // Update localDeals when deals prop changes
   useEffect(() => {
     setLocalDeals(deals)
   }, [deals])
+  
+  // Auto-move deals to "new_deal" if they're in unauthorized stages
+  useEffect(() => {
+    const moveUnauthorizedDeals = async () => {
+      const allowedStageIds = PARTNER_STAGES.map(s => s.id)
+      const dealsToMove = localDeals.filter(deal => !allowedStageIds.includes(deal.stage))
+      
+      if (dealsToMove.length > 0) {
+        console.log(`Moving ${dealsToMove.length} deal(s) from unauthorized stages to New Deal`)
+        
+        // Move each deal to new_deal stage
+        for (const deal of dealsToMove) {
+          try {
+            const { error } = await supabase
+              .from('deals')
+              .update({
+                stage: 'new_deal',
+                updated_at: new Date().toISOString()
+              })
+              .eq('id', deal.id)
+
+            if (error) throw error
+
+            // Log activity
+            await supabase
+              .from('deal_activities')
+              .insert([{
+                deal_id: deal.id,
+                activity_type: 'stage_updated',
+                description: `Stage automatically moved from ${deal.stage} to New Deal due to partner type change`
+              }])
+          } catch (error) {
+            console.error('Error moving deal:', error)
+          }
+        }
+        
+        // Update local state
+        const updatedDeals = prevDeals.map(deal => 
+          !allowedStageIds.includes(deal.stage) 
+            ? { ...deal, stage: 'new_deal' }
+            : deal
+        )
+        setLocalDeals(updatedDeals)
+        
+        // Notify parent with updated deals
+        if (onDealUpdate) {
+          onDealUpdate(updatedDeals)
+        }
+      }
+    }
+    
+    if (localDeals.length > 0 && PARTNER_STAGES.length > 0) {
+      moveUnauthorizedDeals()
+    }
+  }, [PARTNER_STAGES, localDeals.length]) // Only run when stages change or deal count changes
 
   const sensors = useSensors(
     useSensor(PointerSensor, {

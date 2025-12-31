@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { 
   Users, BarChart3, Headphones, FileText, Settings, 
   Menu, X, LogOut, Search, Home, TrendingUp,
-  User, ChevronDown, BookOpen, Download, ShoppingCart
+  User, ChevronDown, BookOpen, Download, ShoppingCart, Trophy
 } from 'lucide-react'
 import { usePathname } from 'next/navigation'
 import NotificationBell from '@/components/NotificationBell'
@@ -88,6 +88,7 @@ const baseNavigation = [
   // Conditionally add Learning tab
   ...(learningEnabled ? [{ name: 'Learning', href: '/dashboard/learning', icon: BookOpen }] : []),
   { name: 'Knowledge Base', href: '/dashboard/knowledge', icon: FileText },
+  { name: 'Bonuses', href: '/dashboard/bonuses', icon: Trophy },
 ]
 
   // NEW: Conditionally add MDF if enabled

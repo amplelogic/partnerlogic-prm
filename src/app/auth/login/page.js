@@ -1,19 +1,33 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { Mail, Lock, AlertTriangle, Eye, EyeOff } from 'lucide-react'
+import { Mail, Lock, AlertTriangle, Eye, EyeOff, Shield } from 'lucide-react'
 
 export default function LoginPage() {
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
+  const [mathAnswer, setMathAnswer] = useState('')
+  const [mathChallenge, setMathChallenge] = useState({ num1: 0, num2: 0, answer: 0 })
   const [error, setError] = useState('')
   const [loading, setLoading] = useState(false)
   const [showPassword, setShowPassword] = useState(false)
   const router = useRouter()
   const supabase = createClient()
+
+  // Generate a new math challenge when component mounts
+  useEffect(() => {
+    generateMathChallenge()
+  }, [])
+
+  const generateMathChallenge = () => {
+    const num1 = Math.floor(Math.random() * 10) + 1 // 1-10
+    const num2 = Math.floor(Math.random() * 10) + 1 // 1-10
+    setMathChallenge({ num1, num2, answer: num1 + num2 })
+    setMathAnswer('') // Clear previous answer
+  }
 
   const handleLogin = async (e) => {
     e.preventDefault()
@@ -21,6 +35,13 @@ export default function LoginPage() {
     setLoading(true)
 
     try {
+      // Validate math challenge first
+      const userAnswer = parseInt(mathAnswer)
+      if (isNaN(userAnswer) || userAnswer !== mathChallenge.answer) {
+        generateMathChallenge() // Generate new challenge
+        throw new Error('Incorrect answer to the security question. Please try again.')
+      }
+
       const { data, error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -98,6 +119,8 @@ export default function LoginPage() {
     } catch (err) {
       console.error('Login error:', err)
       setError(err.message || 'Invalid login credentials')
+      // Generate new math challenge on error
+      generateMathChallenge()
     } finally {
       setLoading(false)
     }
@@ -181,6 +204,45 @@ export default function LoginPage() {
                     <Eye className="h-5 w-5 text-gray-400 hover:text-gray-600" />
                   )}
                 </button>
+              </div>
+            </div>
+
+            {/* Math Challenge for MFA */}
+            <div>
+              <label htmlFor="mathAnswer" className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="flex items-center space-x-2">
+                  <Shield className="h-4 w-4 text-blue-600" />
+                  <span>Security Check</span>
+                </div>
+              </label>
+              <div className="relative">
+                <div className="flex items-center space-x-3">
+                  <div className="flex-1">
+                    <div className="border border-blue-200 rounded-lg px-4 py-3 mb-2">
+                      <p className="text-center text-lg font-semibold text-gray-900">
+                        What is {mathChallenge.num1} + {mathChallenge.num2}?
+                      </p>
+                    </div>
+                    <input
+                      id="mathAnswer"
+                      name="mathAnswer"
+                      type="number"
+                      required
+                      value={mathAnswer}
+                      onChange={(e) => setMathAnswer(e.target.value)}
+                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                      placeholder="Enter your answer"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={generateMathChallenge}
+                    className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
+                    title="Generate new question"
+                  >
+                    ↻
+                  </button>
+                </div>
               </div>
             </div>
           </div>

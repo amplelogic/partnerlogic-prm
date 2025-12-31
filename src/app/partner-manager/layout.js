@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Users, BarChart3, Settings,
   Menu, X, LogOut, Search, Home,
-  User, ChevronDown, Building2, Headphones, FileText, DollarSign
+  User, ChevronDown, Building2, Headphones, FileText, DollarSign, Trophy
 } from 'lucide-react'
 import NotificationBell from '@/components/NotificationBell'
 
@@ -77,6 +77,7 @@ export default function PartnerManagerLayout({ children }) {
     { name: 'All Deals', href: '/partner-manager/deals', icon: BarChart3, current: pathname.startsWith('/partner-manager/deals') },
     { name: 'Invoices', href: '/partner-manager/invoices', icon: FileText, current: pathname.startsWith('/partner-manager/invoices') },
     { name: 'MDF Requests', href: '/partner-manager/mdf', icon: DollarSign, current: pathname.startsWith('/partner-manager/mdf') },
+    { name: 'Bonuses', href: '/partner-manager/bonuses', icon: Trophy, current: pathname.startsWith('/partner-manager/bonuses') },
     { name: 'Support', href: '/partner-manager/support', icon: Headphones, current: pathname.startsWith('/partner-manager/support') },
     { name: 'Settings', href: '/partner-manager/settings', icon: Settings, current: pathname === '/partner-manager/settings' },
   ]

@@ -447,7 +447,11 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
         {/* Kanban or List View */}
         {viewMode === 'kanban' ? (
           <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-            <KanbanView deals={filteredDeals} onDealUpdate={setDeals} />
+            <KanbanView 
+              deals={filteredDeals} 
+              onDealUpdate={setDeals}
+              partnerOrganizationType={partner?.organization?.type}
+            />
           </div>
         ) : (
           <>
