@@ -5,7 +5,7 @@ import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useS
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
-import { DollarSign, ExternalLink } from 'lucide-react'
+import { DollarSign, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
 
@@ -132,6 +132,45 @@ function KanbanColumn({ stage, deals, activeId }) {
     </div>
   )
 }
+
+// Collapsible Divider Component
+function CollapsibleDivider({ isExpanded, onToggle, implementationDealsCount }) {
+  return (
+    <div className="flex flex-col justify-center items-center w-12 flex-shrink-0 mx-2">
+      <button
+        onClick={onToggle}
+        className="group relative flex flex-col items-center justify-center bg-white border-2 border-gray-300 rounded-lg p-2 hover:bg-gray-50 hover:border-purple-400 transition-all shadow-sm hover:shadow-md"
+        title={isExpanded ? "Hide implementation stages" : "Show implementation stages"}
+      >
+        {/* Icon */}
+        {isExpanded ? (
+          <ChevronDown className="h-6 w-6 text-purple-600 mb-1" />
+        ) : (
+          <ChevronRight className="h-6 w-6 text-purple-600 mb-1" />
+        )}
+        
+        {/* Label */}
+        <div className="text-[9px] font-semibold text-gray-700 text-center leading-tight mb-1">
+          {isExpanded ? 'Hide' : 'Show'}
+        </div>
+        
+        {/* Badge */}
+        <div className="bg-purple-100 text-purple-700 px-1.5 py-0.5 rounded-full text-[8px] font-bold">
+          {implementationDealsCount}
+        </div>
+        
+        {/* Tooltip */}
+        <div className="absolute -bottom-16 left-1/2 transform -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-10">
+          {isExpanded ? 'Hide implementation stages' : 'Show implementation stages'}
+          <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 w-2 h-2 bg-gray-900 rotate-45"></div>
+        </div>
+      </button>
+      
+      {/* Vertical line indicator */}
+      <div className="w-0.5 h-full bg-gradient-to-b from-purple-300 via-purple-200 to-transparent mt-2"></div>
+    </div>
+  )
+}
  
 // Main Kanban Board Component
 export default function KanbanView({ deals, onDealUpdate, partnerOrganizationType }) {
@@ -139,6 +178,7 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
   const [localDeals, setLocalDeals] = useState(deals)
   const [showClosedWonModal, setShowClosedWonModal] = useState(false)
   const [pendingClosedWonDeal, setPendingClosedWonDeal] = useState(null)
+  const [isImplementationExpanded, setIsImplementationExpanded] = useState(false)
   const supabase = createClient()
   
   // Determine which stages to show based on partner type (memoized to prevent infinite loops)
@@ -353,7 +393,7 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
           .insert([{
             deal_id: pendingClosedWonDeal.id,
             activity_type: 'stage_updated',
-            description: `Stage updated to ${PARTNER_STAGES.find(s => s.id === pendingClosedWonDeal.stage)?.label}`
+            description: `Stage updated to Closed Won - Invoice sent to Ample Logic`
           }])
 
         // Notify parent component
@@ -382,6 +422,24 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
 
   const activeDeal = activeId ? localDeals.find(d => d.id === activeId) : null
 
+  // Calculate implementation deals count
+  const implementationDealsCount = useMemo(() => {
+    if (partnerOrganizationType !== 'full_cycle') return 0
+    return localDeals.filter(deal => 
+      IMPLEMENTATION_STAGES.some(stage => stage.id === deal.stage)
+    ).length
+  }, [localDeals, partnerOrganizationType])
+
+  // Determine which stages to display based on partner type and expansion state
+  const displayedStages = useMemo(() => {
+    if (partnerOrganizationType !== 'full_cycle') {
+      return SALES_STAGES
+    }
+    return isImplementationExpanded 
+      ? [...SALES_STAGES, ...IMPLEMENTATION_STAGES]
+      : SALES_STAGES
+  }, [partnerOrganizationType, isImplementationExpanded])
+
   return (
     <>
       <DndContext
@@ -393,7 +451,27 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
       >
         <div className="flex gap-2 overflow-x-auto pb-4">
           <SortableContext items={PARTNER_STAGES.map(s => s.id)} strategy={verticalListSortingStrategy}>
-            {PARTNER_STAGES.map(stage => (
+            {/* Render sales stages */}
+            {SALES_STAGES.map((stage) => (
+              <KanbanColumn
+                key={stage.id}
+                stage={stage}
+                deals={localDeals}
+                activeId={activeId}
+              />
+            ))}
+            
+            {/* Show collapsible divider for full-cycle partners after sales stages */}
+            {partnerOrganizationType === 'full_cycle' && (
+              <CollapsibleDivider
+                isExpanded={isImplementationExpanded}
+                onToggle={() => setIsImplementationExpanded(!isImplementationExpanded)}
+                implementationDealsCount={implementationDealsCount}
+              />
+            )}
+            
+            {/* Render implementation stages if expanded and full-cycle */}
+            {partnerOrganizationType === 'full_cycle' && isImplementationExpanded && IMPLEMENTATION_STAGES.map((stage) => (
               <KanbanColumn
                 key={stage.id}
                 stage={stage}
