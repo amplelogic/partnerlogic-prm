@@ -275,15 +275,13 @@ export default function NotificationBell() {
                       </span>
                       
                       <div className="flex-1 min-w-0">
-                        <Link
-                          href={getNotificationLink(notification)}
+                        <div
                           onClick={() => {
                             if (!notification.is_read) {
                               markAsRead(notification.id)
                             }
-                            setIsOpen(false)
                           }}
-                          className="block"
+                          className="block cursor-pointer"
                         >
                           <p className={`text-sm ${
                             !notification.is_read ? 'font-semibold text-gray-900' : 'font-medium text-gray-700'
@@ -296,7 +294,7 @@ export default function NotificationBell() {
                           <p className="text-xs text-gray-500 mt-1">
                             {formatTimeAgo(notification.created_at)}
                           </p>
-                        </Link>
+                        </div>
                       </div>
 
                       <div className="flex flex-col space-y-1">
