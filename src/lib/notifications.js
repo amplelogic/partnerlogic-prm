@@ -12,6 +12,8 @@ export async function createNotification({
   referenceType = null
 }) {
   try {
+    console.log('🔔 Creating notification:', { userId, title, type, referenceType })
+    
     const response = await fetch('/api/notifications/create', {
       method: 'POST',
       headers: {
@@ -32,9 +34,11 @@ export async function createNotification({
     const result = await response.json()
     
     if (!response.ok) {
+      console.error('❌ Notification creation failed:', result)
       throw new Error(result.error || 'Failed to create notification')
     }
     
+    console.log('✅ Notification created successfully:', result.data?.[0]?.id)
     return { data: result.data?.[0], error: null }
   } catch (error) {
     console.error('Error creating notification:', error)
@@ -47,6 +51,8 @@ export async function createNotification({
  */
 export async function createBulkNotifications(notifications) {
   try {
+    console.log(`🔔 Creating ${notifications.length} bulk notifications`)
+    
     const response = await fetch('/api/notifications/create', {
       method: 'POST',
       headers: {
@@ -58,9 +64,11 @@ export async function createBulkNotifications(notifications) {
     const result = await response.json()
     
     if (!response.ok) {
+      console.error('❌ Bulk notification creation failed:', result)
       throw new Error(result.error || 'Failed to create notifications')
     }
     
+    console.log(`✅ Created ${result.data?.length || 0} notifications successfully`)
     return { data: result.data, error: null }
   } catch (error) {
     console.error('Error creating bulk notifications:', error)
@@ -147,22 +155,138 @@ export async function notifyPartnerManager({ partnerId, title, message, type, re
 }
 
 /**
- * Notify a partner
+ * Notify all support users
  */
-export async function notifyPartner({ partnerId, title, message, type, referenceId, referenceType }) {
+export async function notifySupportUsers({ title, message, type, referenceId, referenceType }) {
   try {
+    console.log('👥 Notifying support users...')
     const supabase = createClient()
     
-    // Get the partner's auth_user_id
+    // Get all active support users
+    const { data: supportUsers, error: supportUsersError } = await supabase
+      .from('support_users')
+      .select('auth_user_id')
+      .eq('active', true)
+
+    if (supportUsersError) {
+      console.error('❌ Error fetching support users:', supportUsersError)
+      throw supportUsersError
+    }
+    
+    if (!supportUsers || supportUsers.length === 0) {
+      console.warn('⚠️ No active support users found to notify')
+      return { data: null, error: 'No active support users found' }
+    }
+
+    console.log(`✅ Found ${supportUsers.length} active support users`)
+
+    const notifications = supportUsers.map(user => ({
+      user_id: user.auth_user_id,
+      title,
+      message,
+      type,
+      reference_id: referenceId,
+      reference_type: referenceType
+    }))
+
+    return await createBulkNotifications(notifications)
+  } catch (error) {
+    console.error('Error notifying support users:', error)
+    return { data: null, error }
+  }
+}
+
+/**
+ * Send email for support ticket updates
+ */
+export async function sendSupportTicketEmail({ subject, ticketId, ticketSubject, status, partnerData }) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables')
+      return { success: false, error: 'Missing configuration' }
+    }
+
+    console.log('📧 Sending email via edge function:', {
+      to: partnerData.email,
+      subject,
+      ticketId: ticketId.slice(0, 8),
+      status
+    })
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-support-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      },
+      body: JSON.stringify({
+        to: partnerData.email,
+        subject,
+        ticketId,
+        ticketSubject,
+        status,
+        partnerName: `${partnerData.first_name} ${partnerData.last_name}`
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Email sending failed:', errorText)
+      throw new Error(`Email sending failed: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('✅ Email sent successfully:', data)
+    
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error sending email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Notify a partner (with optional email)
+ */
+export async function notifyPartner({ 
+  partnerId, 
+  title, 
+  message, 
+  type, 
+  referenceId, 
+  referenceType,
+  sendEmail = false,
+  emailData = null 
+}) {
+  try {
+    console.log('💼 notifyPartner called:', { partnerId, title, sendEmail })
+    const supabase = createClient()
+    
+    // Get the partner's auth_user_id and email
     const { data: partner, error: partnerError } = await supabase
       .from('partners')
-      .select('auth_user_id')
+      .select('auth_user_id, email, first_name, last_name')
       .eq('id', partnerId)
       .single()
 
-    if (partnerError) throw partnerError
+    if (partnerError) {
+      console.error('❌ Error fetching partner:', partnerError)
+      throw partnerError
+    }
+    
+    if (!partner) {
+      console.error('❌ Partner not found:', partnerId)
+      throw new Error('Partner not found')
+    }
 
-    return await createNotification({
+    console.log('✅ Partner found:', { email: partner.email, auth_user_id: partner.auth_user_id })
+
+    // Send in-app notification
+    console.log('📱 Sending in-app notification to partner...')
+    const notificationResult = await createNotification({
       userId: partner.auth_user_id,
       title,
       message,
@@ -170,8 +294,22 @@ export async function notifyPartner({ partnerId, title, message, type, reference
       referenceId,
       referenceType
     })
+
+    // Send email if requested
+    if (sendEmail && emailData) {
+      console.log('📧 Sending email to partner:', partner.email)
+      const emailResult = await sendSupportTicketEmail({
+        ...emailData,
+        partnerData: partner
+      })
+      console.log('Email result:', emailResult)
+    } else {
+      console.log('ℹ️ Email not requested or no email data')
+    }
+
+    return notificationResult
   } catch (error) {
-    console.error('Error notifying partner:', error)
+    console.error('❌ Error in notifyPartner:', error)
     return { data: null, error }
   }
 }
@@ -200,20 +338,32 @@ export const NotificationTemplates = {
 
   // Support ticket notifications
   supportTicketCreated: (ticketId, subject, userName) => ({
-    title: 'New Support Ticket',
-    message: `${userName} created ticket #${ticketId}: ${subject}`,
+    title: 'New Support Ticket Created',
+    message: `${userName} created ticket #${ticketId.slice(0, 8)}: ${subject}`,
     type: 'support'
   }),
   
-  supportTicketResponse: (ticketId, responderName) => ({
-    title: 'Support Ticket Updated',
-    message: `${responderName} responded to your ticket #${ticketId}`,
+  supportTicketResponse: (ticketId, responderName, responsePreview) => ({
+    title: 'New Response on Your Ticket',
+    message: `${responderName} responded: "${responsePreview.substring(0, 50)}${responsePreview.length > 50 ? '...' : ''}"`,
     type: 'support'
   }),
   
-  supportTicketStatusChanged: (ticketId, newStatus) => ({
+  supportTicketStatusChanged: (ticketId, oldStatus, newStatus) => ({
     title: 'Ticket Status Updated',
-    message: `Your ticket #${ticketId} status changed to ${newStatus}`,
+    message: `Ticket #${ticketId.slice(0, 8)} changed from ${oldStatus.replace('_', ' ')} to ${newStatus.replace('_', ' ')}`,
+    type: 'support'
+  }),
+  
+  supportTicketResolved: (ticketId, subject) => ({
+    title: '✅ Ticket Resolved',
+    message: `Your ticket "${subject}" has been marked as resolved`,
+    type: 'support'
+  }),
+  
+  supportTicketClosed: (ticketId, subject) => ({
+    title: 'Ticket Closed',
+    message: `Your ticket "${subject}" has been closed`,
     type: 'support'
   }),
 

@@ -8,7 +8,7 @@ import {
   ArrowLeft, MessageSquare, User, Building2, AlertCircle,
   CheckCircle, Clock, Save, Mail
 } from 'lucide-react'
-import { notifyPartner, NotificationTemplates } from '@/lib/notifications'
+import { notifyPartner, notifySupportUsers, NotificationTemplates } from '@/lib/notifications'
 
 export default function PartnerManagerSupportTicketDetailPage() {
   const params = useParams()
@@ -122,22 +122,61 @@ export default function PartnerManagerSupportTicketDetailPage() {
         throw error
       }
 
-      // Notify partner about status change
+      console.log('✅ Status updated in database')
+      
+      // Update local state immediately
+      setTicket(prev => ({
+        ...prev,
+        status: newStatus,
+        updated_at: updates.updated_at,
+        ...(updates.resolved_at && { resolved_at: updates.resolved_at })
+      }))
+
+      // Notify partner and support users about status change
       try {
+        console.log('🔄 Ticket status changed:', { from: ticket.status, to: newStatus, ticketId: ticket.id })
+        const oldStatus = ticket.status
+        const notification = NotificationTemplates.supportTicketStatusChanged(
+          ticket.id,
+          oldStatus,
+          newStatus
+        )
+        
+        console.log('📝 Notification template:', notification)
+        
+        // Notify partner
         if (ticket.partner_id) {
-          const notification = NotificationTemplates.supportTicketStatusChanged(
-            ticket.id,
-            ticketStatuses.find(s => s.value === newStatus)?.label || newStatus
-          )
-          await notifyPartner({
+          console.log('👤 Notifying partner:', ticket.partner_id)
+          const result = await notifyPartner({
             partnerId: ticket.partner_id,
             ...notification,
             referenceId: ticket.id,
-            referenceType: 'support_ticket'
+            referenceType: 'support_ticket',
+            sendEmail: true,
+            emailData: {
+              subject: `Ticket #${ticket.id.slice(0, 8)} Status Update - ${ticket.subject}`,
+              ticketId: ticket.id,
+              ticketSubject: ticket.subject,
+              status: newStatus
+            }
           })
+          console.log('Partner notification result:', result)
+        } else {
+          console.warn('⚠️ No partner_id on ticket')
         }
+        
+        // Notify support users
+        console.log('👥 Notifying support users about status change...')
+        const supportResult = await notifySupportUsers({
+          title: 'Ticket Status Updated',
+          message: `Partner Manager updated ticket #${ticket.id.slice(0, 8)} to ${ticketStatuses.find(s => s.value === newStatus)?.label || newStatus}`,
+          type: 'support',
+          referenceId: ticket.id,
+          referenceType: 'support_ticket'
+        })
+        console.log('Support users notification result:', supportResult)
       } catch (notificationError) {
-        console.error('Error sending notification:', notificationError)
+        console.error('❌ Error sending notification:', notificationError)
       }
 
       await loadTicketDetails()

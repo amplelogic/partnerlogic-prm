@@ -10,7 +10,7 @@ import {
   Headphones, Wrench, Users, FileText, Upload,
   Info, Clock
 } from 'lucide-react'
-import { notifyAdmins, notifyPartnerManager, NotificationTemplates } from '@/lib/notifications'
+import { notifyAdmins, notifyPartnerManager, notifySupportUsers, createNotification, NotificationTemplates, sendSupportTicketEmail } from '@/lib/notifications'
 
 export default function NewSupportTicketPage() {
   const [partner, setPartner] = useState(null)
@@ -192,7 +192,7 @@ export default function NewSupportTicketPage() {
 
       if (error) throw error
 
-      // Send notification to admins
+      // Send notifications to admins, support users, and partner
       try {
         const userName = `${partner.first_name} ${partner.last_name}`
         const notification = NotificationTemplates.supportTicketCreated(
@@ -201,7 +201,15 @@ export default function NewSupportTicketPage() {
           userName
         )
         
+        // Notify admins
         await notifyAdmins({
+          ...notification,
+          referenceId: data[0].id,
+          referenceType: 'support_ticket'
+        })
+        
+        // Notify support users
+        await notifySupportUsers({
           ...notification,
           referenceId: data[0].id,
           referenceType: 'support_ticket'
@@ -216,6 +224,35 @@ export default function NewSupportTicketPage() {
             referenceType: 'support_ticket'
           })
         }
+        
+        // Send in-app notification to partner (confirmation)
+        console.log('🔔 Sending confirmation notification to partner...')
+        const { data: { user } } = await supabase.auth.getUser()
+        if (user) {
+          await createNotification({
+            userId: user.id,
+            title: 'Support Ticket Created',
+            message: `Your ticket "${formData.subject}" has been submitted. Our team will respond shortly.`,
+            type: 'support',
+            referenceId: data[0].id,
+            referenceType: 'support_ticket'
+          })
+        }
+        
+        // Send confirmation email to partner
+        console.log('📧 Sending ticket confirmation email to partner...')
+        const emailResult = await sendSupportTicketEmail({
+          subject: `Support Ticket Created - #${data[0].id.slice(0, 8)}`,
+          ticketId: data[0].id,
+          ticketSubject: formData.subject,
+          status: 'open',
+          partnerData: {
+            email: partner.email,
+            first_name: partner.first_name,
+            last_name: partner.last_name
+          }
+        })
+        console.log('Email result:', emailResult)
       } catch (notificationError) {
         console.error('Error sending notification:', notificationError)
       }
