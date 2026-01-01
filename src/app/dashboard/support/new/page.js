@@ -246,6 +246,7 @@ export default function NewSupportTicketPage() {
           ticketId: data[0].id,
           ticketSubject: formData.subject,
           status: 'open',
+          description: formData.description,
           partnerData: {
             email: partner.email,
             first_name: partner.first_name,

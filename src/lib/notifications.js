@@ -199,7 +199,7 @@ export async function notifySupportUsers({ title, message, type, referenceId, re
 /**
  * Send email for support ticket updates
  */
-export async function sendSupportTicketEmail({ subject, ticketId, ticketSubject, status, partnerData }) {
+export async function sendSupportTicketEmail({ subject, ticketId, ticketSubject, status, description, partnerData }) {
   try {
     const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
     const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
@@ -228,6 +228,7 @@ export async function sendSupportTicketEmail({ subject, ticketId, ticketSubject,
         ticketId,
         ticketSubject,
         status,
+        description: description || '',
         partnerName: `${partnerData.first_name} ${partnerData.last_name}`
       })
     })

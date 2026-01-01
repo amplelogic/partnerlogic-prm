@@ -121,7 +121,8 @@ export default function AdminSupportTicketDetailPage() {
               subject: `Ticket #${ticket.id.slice(0, 8)} Status Update - ${ticket.subject}`,
               ticketId: ticket.id,
               ticketSubject: ticket.subject,
-              status: newStatus
+              status: newStatus,
+              description: ticket.description
             }
           })
           console.log('Partner notification result:', result)
