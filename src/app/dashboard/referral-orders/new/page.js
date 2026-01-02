@@ -9,8 +9,9 @@ import {
   ArrowLeft, Save, ShoppingCart, User, Mail, Building2, 
   Phone, DollarSign, Calendar, FileText, Tag, Package
 } from 'lucide-react'
-import { getCurrencyOptionsSync } from '@/lib/currencyUtils'
+import { getCurrencyOptionsSync, formatCurrency } from '@/lib/currencyUtils'
 import ProductMultiSelect from '@/components/ProductMultiSelect'
+import { sendInvoiceEmail } from '@/lib/notifications'
 
 export default function NewReferralOrderPage() {
   const [partner, setPartner] = useState(null)
@@ -161,6 +162,14 @@ export default function NewReferralOrderPage() {
       const productNames = formData.selected_products.map(p => p.name).join(', ')
       const productDescriptions = formData.selected_products.map(p => p.description).filter(Boolean).join(' | ')
       
+      console.log('Creating referral order with data:', {
+        partner_id: partner.id,
+        client_name: formData.client_name,
+        client_email: formData.client_email,
+        order_value: parseFloat(formData.order_value),
+        currency: formData.currency
+      })
+
       const { data, error } = await supabase
         .from('referral_orders')
         .insert([{
@@ -171,7 +180,6 @@ export default function NewReferralOrderPage() {
           client_phone: formData.client_phone || null,
           product_name: productNames,
           product_description: productDescriptions || null,
-          products_json: JSON.stringify(formData.selected_products),
           order_value: parseFloat(formData.order_value),
           currency: formData.currency,
           commission_percentage: parseFloat(formData.commission_percentage) || 0,
@@ -182,23 +190,56 @@ export default function NewReferralOrderPage() {
         }])
         .select()
 
-      if (error) throw error
+      if (error) {
+        console.error('Supabase error details:', error)
+        console.error('Error message:', error.message)
+        console.error('Error code:', error.code)
+        console.error('Error hint:', error.hint)
+        console.error('Error details:', error.details)
+        alert(`Database Error: ${error.message || error.code || 'Unknown error'}\n\nCheck console for details`)
+        throw error
+      }
 
-      // Log activity
-      await supabase
-        .from('deal_activities')
-        .insert([{
-          deal_id: data[0].id,
-          activity_type: 'referral_order_created',
-          description: `Referral order created for ${formData.client_name}`,
-          created_by: partner.id
-        }])
+      console.log('✅ Referral order created:', data[0].id)
+
+      // Send invoice emails to client and partner manager (async, non-blocking)
+      setTimeout(async () => {
+        try {
+          console.log('📧 Sending invoice emails for referral order...')
+          
+          // Get partner manager email
+          let partnerManagerEmail = null
+          if (partner.partner_manager_id) {
+            const { data: managerData } = await supabase
+              .from('partner_managers')
+              .select('email')
+              .eq('id', partner.partner_manager_id)
+              .single()
+            
+            partnerManagerEmail = managerData?.email
+          }
+
+          await sendInvoiceEmail({
+            dealId: data[0].id,
+            customerName: formData.client_name,
+            customerEmail: formData.client_email,
+            partnerManagerEmail,
+            amount: formatCurrency(parseFloat(formData.order_value), formData.currency),
+            description: formData.notes || `Referral order for ${productNames}`
+          })
+
+          console.log('✅ Referral order invoice emails sent successfully')
+        } catch (emailError) {
+          console.error('Error sending invoice emails:', emailError)
+        }
+      }, 500)
 
       router.push('/dashboard/referral-orders')
       router.refresh()
     } catch (error) {
       console.error('Error creating referral order:', error)
-      alert('Failed to create referral order. Please try again.')
+      console.error('Full error object:', JSON.stringify(error, null, 2))
+      alert(`Failed to create referral order: ${error.message || 'Please try again.'}`)
     } finally {
       setSubmitting(false)
     }

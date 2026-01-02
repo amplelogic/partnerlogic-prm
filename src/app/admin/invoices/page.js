@@ -12,6 +12,7 @@ import {
   Eye, ChevronDown, ShoppingCart
 } from 'lucide-react'
 import { formatCurrency as formatCurrencyUtil } from '@/lib/currencyUtils'
+import { sendInvoiceEmail, sendOverduePaymentEmail } from '@/lib/notifications'
 
 export default function AdminInvoicesPage() {
   const [deals, setDeals] = useState([])
@@ -25,8 +26,16 @@ export default function AdminInvoicesPage() {
   const [dateFilter, setDateFilter] = useState('all')
   const [partners, setPartners] = useState([])
   const [viewMode, setViewMode] = useState('deals') // 'deals' or 'referrals'
+  const [updatingStatus, setUpdatingStatus] = useState({})
   
   const supabase = createClient()
+
+  const paymentStatuses = [
+    { value: 'unpaid', label: 'Unpaid', color: 'bg-yellow-100 text-yellow-800' },
+    { value: 'paid', label: 'Paid', color: 'bg-green-100 text-green-800' },
+    { value: 'partial', label: 'Partial', color: 'bg-blue-100 text-blue-800' },
+    { value: 'overdue', label: 'Overdue', color: 'bg-red-100 text-red-800' }
+  ]
 
   useEffect(() => {
     loadInvoices()
@@ -108,6 +117,63 @@ export default function AdminInvoicesPage() {
       console.error('Error loading invoices:', error)
     } finally {
       setLoading(false)
+    }
+  }
+
+  const updatePaymentStatus = async (dealId, newStatus) => {
+    try {
+      setUpdatingStatus(prev => ({ ...prev, [dealId]: true }))
+
+      const { error } = await supabase
+        .from('deals')
+        .update({ payment_status: newStatus })
+        .eq('id', dealId)
+
+      if (error) throw error
+
+      // Update local state
+      const updatedDeal = deals.find(d => d.id === dealId)
+      setDeals(prevDeals =>
+        prevDeals.map(deal =>
+          deal.id === dealId ? { ...deal, payment_status: newStatus } : deal
+        )
+      )
+
+      console.log(`✅ Payment status updated to ${newStatus}`)
+
+      // Send overdue reminder email to partner if status is overdue
+      if (newStatus === 'overdue' && updatedDeal) {
+        try {
+          console.log('📧 Sending overdue payment reminder to partner...')
+          
+          // Get partner email
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('email, first_name, last_name')
+            .eq('id', updatedDeal.partner_id)
+            .single()
+
+          if (partnerData?.email) {
+            await sendOverduePaymentEmail({
+              dealId: updatedDeal.id,
+              customerName: updatedDeal.customer_name,
+              partnerEmail: partnerData.email,
+              partnerName: `${partnerData.first_name} ${partnerData.last_name}`,
+              amount: formatCurrency(updatedDeal.deal_value, updatedDeal.currency),
+              description: updatedDeal.description
+            })
+            console.log('✅ Overdue payment reminder sent')
+          }
+        } catch (emailError) {
+          console.error('Error sending overdue reminder:', emailError)
+          // Don't block status update if email fails
+        }
+      }
+    } catch (error) {
+      console.error('Error updating payment status:', error)
+      alert('Failed to update payment status')
+    } finally {
+      setUpdatingStatus(prev => ({ ...prev, [dealId]: false }))
     }
   }
 
@@ -367,6 +433,24 @@ export default function AdminInvoicesPage() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Closed Won
                       </span>
+                      
+                      {/* Payment Status Dropdown */}
+                      <div className="relative">
+                        <select
+                          value={deal.payment_status || 'unpaid'}
+                          onChange={(e) => updatePaymentStatus(deal.id, e.target.value)}
+                          disabled={updatingStatus[deal.id]}
+                          className={`pl-3 pr-8 py-1 text-xs font-medium rounded-full border-0 focus:ring-2 focus:ring-blue-500 cursor-pointer ${
+                            paymentStatuses.find(s => s.value === (deal.payment_status || 'unpaid'))?.color || 'bg-gray-100 text-gray-800'
+                          } ${updatingStatus[deal.id] ? 'opacity-50' : ''}`}
+                        >
+                          {paymentStatuses.map(status => (
+                            <option key={status.value} value={status.value}>
+                              {status.label}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">

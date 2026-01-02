@@ -8,6 +8,7 @@ import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
 import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
+import { sendInvoiceEmail } from '@/lib/notifications'
 
 // SALES STAGES - For all partners
 const SALES_STAGES = [
@@ -375,6 +376,41 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
   const handleConfirmClosedWon = async () => {
     if (pendingClosedWonDeal) {
       try {
+        // Check if invoice already sent to prevent duplicates
+        const { data: currentDeal } = await supabase
+          .from('deals')
+          .select('invoice_sent_at')
+          .eq('id', pendingClosedWonDeal.id)
+          .single()
+
+        if (currentDeal?.invoice_sent_at) {
+          console.log('⚠️ Invoice already sent, skipping email')
+          // Still update the stage but don't send email
+          await supabase
+            .from('deals')
+            .update({
+              stage: pendingClosedWonDeal.stage,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', pendingClosedWonDeal.id)
+
+          await supabase
+            .from('deal_activities')
+            .insert([{
+              deal_id: pendingClosedWonDeal.id,
+              activity_type: 'stage_updated',
+              description: `Stage updated to Closed Won`
+            }])
+
+          if (onDealUpdate) {
+            onDealUpdate(localDeals)
+          }
+
+          setShowClosedWonModal(false)
+          setPendingClosedWonDeal(null)
+          return
+        }
+
         // Update deal stage and set invoice_sent_at timestamp
         const { error } = await supabase
           .from('deals')
@@ -395,6 +431,40 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
             activity_type: 'stage_updated',
             description: `Stage updated to Closed Won - Invoice sent to Ample Logic`
           }])
+
+        // Send invoice emails to client and partner manager
+        console.log('📧 Sending invoice emails for closed won deal...')
+        
+        // Get partner manager email
+        let partnerManagerEmail = null
+        if (pendingClosedWonDeal.partner_id) {
+          const { data: partnerData } = await supabase
+            .from('partners')
+            .select('partner_manager_id')
+            .eq('id', pendingClosedWonDeal.partner_id)
+            .single()
+          
+          if (partnerData?.partner_manager_id) {
+            const { data: managerData } = await supabase
+              .from('partner_managers')
+              .select('email')
+              .eq('id', partnerData.partner_manager_id)
+              .single()
+            
+            partnerManagerEmail = managerData?.email
+          }
+        }
+
+        await sendInvoiceEmail({
+          dealId: pendingClosedWonDeal.id,
+          customerName: pendingClosedWonDeal.customer_name,
+          customerEmail: pendingClosedWonDeal.customer_email,
+          partnerManagerEmail,
+          amount: formatCurrency(pendingClosedWonDeal.deal_value, pendingClosedWonDeal.currency),
+          description: pendingClosedWonDeal.description
+        })
+
+        console.log('✅ Invoice emails sent successfully')
 
         // Notify parent component
         if (onDealUpdate) {

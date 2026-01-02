@@ -8,8 +8,8 @@ import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
 import { DollarSign, ExternalLink, User, ChevronRight, ChevronDown } from 'lucide-react'
 import Link from 'next/link'
-import { CURRENCIES } from '@/lib/currencyUtils'
-import { notifyPartner, NotificationTemplates } from '@/lib/notifications'
+import { CURRENCIES, formatCurrency } from '@/lib/currencyUtils'
+import { notifyPartner, NotificationTemplates, sendInvoiceEmail } from '@/lib/notifications'
 
 // SALES STAGES - Visible by default
 const SALES_STAGES = [
@@ -324,12 +324,67 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
     if (newAdminStage === oldAdminStage) return
 
     try {
+      const updates = {
+        admin_stage: newAdminStage,
+        updated_at: new Date().toISOString()
+      }
+
+      // If moving to closed_won and invoice not sent yet, set timestamp and send emails
+      if (newAdminStage === 'closed_won') {
+        const { data: dealData } = await supabase
+          .from('deals')
+          .select('invoice_sent_at, customer_email, customer_name, deal_value, currency, description, partner_id')
+          .eq('id', activeId)
+          .single()
+
+        if (!dealData?.invoice_sent_at) {
+          updates.invoice_sent_at = new Date().toISOString()
+          
+          // Send invoice emails after updating
+          setTimeout(async () => {
+            try {
+              console.log('📧 Sending invoice emails for closed won deal (admin)...')
+              
+              // Get partner manager email
+              let partnerManagerEmail = null
+              if (dealData.partner_id) {
+                const { data: partnerData } = await supabase
+                  .from('partners')
+                  .select('partner_manager_id')
+                  .eq('id', dealData.partner_id)
+                  .single()
+                
+                if (partnerData?.partner_manager_id) {
+                  const { data: managerData } = await supabase
+                    .from('partner_managers')
+                    .select('email')
+                    .eq('id', partnerData.partner_manager_id)
+                    .single()
+                  
+                  partnerManagerEmail = managerData?.email
+                }
+              }
+
+              await sendInvoiceEmail({
+                dealId: activeId,
+                customerName: dealData.customer_name,
+                customerEmail: dealData.customer_email,
+                partnerManagerEmail,
+                amount: formatCurrency(dealData.deal_value, dealData.currency),
+                description: dealData.description
+              })
+
+              console.log('✅ Invoice emails sent successfully')
+            } catch (emailError) {
+              console.error('Error sending invoice emails:', emailError)
+            }
+          }, 500)
+        }
+      }
+
       const { data, error } = await supabase
         .from('deals')
-        .update({
-          admin_stage: newAdminStage,
-          updated_at: new Date().toISOString()
-        })
+        .update(updates)
         .eq('id', activeId)
         .select()
 

@@ -250,6 +250,125 @@ export async function sendSupportTicketEmail({ subject, ticketId, ticketSubject,
 }
 
 /**
+ * Send overdue payment reminder email to partner
+ */
+export async function sendOverduePaymentEmail({ 
+  dealId, 
+  customerName, 
+  partnerEmail,
+  partnerName,
+  amount, 
+  description 
+}) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables')
+      return { success: false, error: 'Missing configuration' }
+    }
+
+    console.log('📧 Sending overdue payment reminder via edge function:', {
+      partnerEmail,
+      dealId: dealId?.slice(0, 8)
+    })
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-overdue-reminder`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      },
+      body: JSON.stringify({
+        partnerEmail,
+        partnerName,
+        dealDetails: {
+          id: dealId,
+          customerName,
+          amount,
+          description: description || ''
+        }
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Overdue reminder email sending failed:', errorText)
+      throw new Error(`Email sending failed: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('✅ Overdue reminder email sent successfully:', data)
+    
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error sending overdue reminder email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
+ * Send invoice email to client and partner manager
+ */
+export async function sendInvoiceEmail({ 
+  dealId, 
+  customerName, 
+  customerEmail, 
+  partnerManagerEmail,
+  amount, 
+  description 
+}) {
+  try {
+    const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+    const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+    
+    if (!supabaseUrl || !supabaseAnonKey) {
+      console.error('Missing Supabase environment variables')
+      return { success: false, error: 'Missing configuration' }
+    }
+
+    console.log('📧 Sending invoice email via edge function:', {
+      clientEmail: customerEmail,
+      partnerManagerEmail,
+      dealId: dealId?.slice(0, 8)
+    })
+
+    const response = await fetch(`${supabaseUrl}/functions/v1/send-invoice-email`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${supabaseAnonKey}`
+      },
+      body: JSON.stringify({
+        clientEmail: customerEmail,
+        partnerManagerEmail: partnerManagerEmail || null,
+        dealDetails: {
+          id: dealId,
+          customerName,
+          amount,
+          description: description || ''
+        }
+      })
+    })
+
+    if (!response.ok) {
+      const errorText = await response.text()
+      console.error('Invoice email sending failed:', errorText)
+      throw new Error(`Email sending failed: ${response.status} - ${errorText}`)
+    }
+
+    const data = await response.json()
+    console.log('✅ Invoice email sent successfully:', data)
+    
+    return { success: true, data }
+  } catch (error) {
+    console.error('Error sending invoice email:', error)
+    return { success: false, error: error.message }
+  }
+}
+
+/**
  * Notify a partner (with optional email)
  */
 export async function notifyPartner({ 
