@@ -66,7 +66,9 @@ const loadTickets = async () => {
   try {
     setLoading(true)
 
-    const { data, error } = await supabase
+    // Support users should see all tickets, or only tickets matching their support_type
+    // If support_type is null or undefined, show all tickets
+    let query = supabase
       .from('support_tickets')
       .select(`
         *,
@@ -82,10 +84,16 @@ const loadTickets = async () => {
           )
         )
       `)
-      .eq('type', supportUser.support_type)
-      .order('created_at', { ascending: false })
 
-    console.log('📋 Tickets:', data)
+    // Only filter by type if support user has a specific type
+    if (supportUser.support_type) {
+      query = query.eq('type', supportUser.support_type)
+    }
+
+    const { data, error } = await query.order('created_at', { ascending: false })
+
+    console.log('📋 Support Type:', supportUser.support_type)
+    console.log('📋 Tickets loaded:', data?.length)
     console.log('❌ Error:', error)
 
     if (error) throw error
@@ -282,7 +290,7 @@ const filteredTickets = tickets.filter(ticket => {
                                 {ticket.subject}
                               </p>
                               <p className="text-sm text-gray-500 truncate mt-1">
-                                {ticket.description.substring(0, 40)}...
+                                {ticket.description.substring(0, 20)}...
                               </p>
                             </div>
                           </div>

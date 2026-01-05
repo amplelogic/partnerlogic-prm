@@ -9,11 +9,13 @@ import {
   CheckCircle, Clock, Save, Mail
 } from 'lucide-react'
 import { notifyPartner, notifySupportUsers, NotificationTemplates } from '@/lib/notifications'
+import TicketMessaging from '@/components/TicketMessaging'
 
 export default function PartnerManagerSupportTicketDetailPage() {
   const params = useParams()
   const [ticket, setTicket] = useState(null)
   const [partnerManager, setPartnerManager] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [newStatus, setNewStatus] = useState('')
@@ -44,6 +46,8 @@ export default function PartnerManagerSupportTicketDetailPage() {
         router.push('/auth/login')
         return
       }
+
+      setCurrentUser(user)
 
       const { data: managerData } = await supabase
         .from('partner_managers')
@@ -298,6 +302,17 @@ export default function PartnerManagerSupportTicketDetailPage() {
                 </button>
               </div>
             </div>
+
+            {/* Communication Section */}
+            {currentUser && partnerManager && (
+              <TicketMessaging 
+                ticketId={ticket.id}
+                currentUserId={currentUser.id}
+                senderType="partner_manager"
+                senderName={`${partnerManager.first_name} ${partnerManager.last_name}`}
+                ticketData={ticket}
+              />
+            )}
           </div>
 
           {/* Sidebar */}

@@ -10,15 +10,15 @@ import {
   AlertCircle, CheckCircle, RefreshCw, Send, Paperclip,
   Headphones, Wrench, Users, FileText, Eye
 } from 'lucide-react'
+import TicketMessaging from '@/components/TicketMessaging'
 
 export default function SupportTicketDetailsPage({ params }) {
   const unwrappedParams = use(params)
   const [ticket, setTicket] = useState(null)
   const [partner, setPartner] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
   const [relatedDeal, setRelatedDeal] = useState(null)
   const [loading, setLoading] = useState(true)
-  const [newMessage, setNewMessage] = useState('')
-  const [sendingMessage, setSendingMessage] = useState(false)
   
   const router = useRouter()
   const supabase = createClient()
@@ -74,6 +74,8 @@ export default function SupportTicketDetailsPage({ params }) {
         return
       }
 
+      setCurrentUser(user)
+
       const { data: partnerData } = await supabase
         .from('partners')
         .select(`
@@ -122,22 +124,6 @@ export default function SupportTicketDetailsPage({ params }) {
       console.error('Error loading ticket details:', error)
     } finally {
       setLoading(false)
-    }
-  }
-
-  const sendMessage = async () => {
-    if (!newMessage.trim() || sendingMessage) return
-
-    try {
-      setSendingMessage(true)
-      // In a real implementation, you might have a messages table
-      // For now, we'll just show success and clear the message
-      setNewMessage('')
-      // Could add to conversation history here
-    } catch (error) {
-      console.error('Error sending message:', error)
-    } finally {
-      setSendingMessage(false)
     }
   }
 
@@ -283,54 +269,16 @@ export default function SupportTicketDetailsPage({ params }) {
               </div>
             </div>
 
-            {/* Ticket Details */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h2 className="text-lg font-semibold text-gray-900">Communication</h2>
-              </div>
-              
-              <div className="p-6">
-                {/* Messages would go here in a real implementation */}
-                <div className="text-center py-6 text-gray-500">
-                  <MessageSquare className="h-8 w-8 mx-auto mb-2" />
-                  <p>No messages yet. Our support team will respond shortly.</p>
-                </div>
-
-                {/* Message Input */}
-                <div className="mt-6 border-t border-gray-200 pt-6">
-                  <div className="flex space-x-4">
-                    <div className="flex-1">
-                      <textarea
-                        value={newMessage}
-                        onChange={(e) => setNewMessage(e.target.value)}
-                        placeholder="Add a message or update to this ticket..."
-                        className="block w-full px-3 py-2 text-black border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 resize-none"
-                        rows={3}
-                      />
-                    </div>
-                    <div className="flex flex-col space-y-2">
-                      <button
-                        onClick={sendMessage}
-                        disabled={!newMessage.trim() || sendingMessage}
-                        className="px-4 py-2 bg-blue-600 text-white text-sm font-medium rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed flex items-center"
-                      >
-                        {sendingMessage ? (
-                          <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white"></div>
-                        ) : (
-                          <Send className="h-4 w-4" />
-                        )}
-                      </button>
-                      <button
-                        type="button"
-                        className="px-4 py-2 border border-gray-300 text-gray-700 text-sm font-medium rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500"
-                      >
-                        <Paperclip className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </div>
-            </div>
+            {/* Communication Section */}
+            {currentUser && partner && (
+              <TicketMessaging 
+                ticketId={ticket.id}
+                currentUserId={currentUser.id}
+                senderType="partner"
+                senderName={`${partner.first_name} ${partner.last_name}`}
+                ticketData={ticket}
+              />
+            )}
           </div>
 
           {/* Sidebar */}

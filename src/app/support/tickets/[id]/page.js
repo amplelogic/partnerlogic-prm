@@ -10,11 +10,14 @@ import {
   ExternalLink, MessageSquare
 } from 'lucide-react'
 import { notifyPartner, notifySupportUsers, NotificationTemplates } from '@/lib/notifications'
+import TicketMessaging from '@/components/TicketMessaging'
 
 export default function SupportTicketDetailPage() {
   const params = useParams()
   const router = useRouter()
   const [ticket, setTicket] = useState(null)
+  const [supportUser, setSupportUser] = useState(null)
+  const [currentUser, setCurrentUser] = useState(null)
   const [loading, setLoading] = useState(true)
   const [updating, setUpdating] = useState(false)
   const [selectedStatus, setSelectedStatus] = useState('')
@@ -47,6 +50,25 @@ export default function SupportTicketDetailPage() {
 const loadTicket = async () => {
   try {
     setLoading(true)
+
+    // Get current user
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) {
+      router.push('/auth/login')
+      return
+    }
+    setCurrentUser(user)
+
+    // Get support user info
+    const { data: supportUserData } = await supabase
+      .from('support_users')
+      .select('*')
+      .eq('auth_user_id', user.id)
+      .single()
+    
+    if (supportUserData) {
+      setSupportUser(supportUserData)
+    }
 
     const { data, error } = await supabase
       .from('support_tickets')
@@ -361,43 +383,16 @@ const loadTicket = async () => {
               </div>
             </div>
 
-            {/* Add Response */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200">
-              <div className="p-6 border-b border-gray-200">
-                <h3 className="text-lg font-semibold text-gray-900 flex items-center">
-                  <MessageSquare className="h-5 w-5 mr-2 text-gray-400" />
-                  Add Response
-                </h3>
-              </div>
-              <div className="p-6">
-                <textarea
-                  value={response}
-                  onChange={(e) => setResponse(e.target.value)}
-                  placeholder="Type your response to the partner..."
-                  rows={4}
-                  className="w-full px-4 py-2 border border-gray-300 rounded-lg text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                />
-                <div className="mt-4 flex justify-end">
-                  <button
-                    onClick={handleAddResponse}
-                    disabled={updating || !response.trim()}
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-lg text-white bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {updating ? (
-                      <>
-                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                        Sending...
-                      </>
-                    ) : (
-                      <>
-                        <MessageSquare className="h-4 w-4 mr-2" />
-                        Send Response
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
+            {/* Communication Section */}
+            {currentUser && supportUser && (
+              <TicketMessaging 
+                ticketId={ticket.id}
+                currentUserId={currentUser.id}
+                senderType="support"
+                senderName="Support Team"
+                ticketData={ticket}
+              />
+            )}
           </div>
 
           {/* Sidebar */}
