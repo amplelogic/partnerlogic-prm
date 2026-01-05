@@ -16,6 +16,7 @@ export default function NewMDFRequestPage() {
   const [saving, setSaving] = useState(false)
   const [errors, setErrors] = useState({})
   const [success, setSuccess] = useState(false)
+  const [mdfRequests, setMdfRequests] = useState([])
   
   const [formData, setFormData] = useState({
     campaign_name: '',
@@ -75,6 +76,16 @@ export default function NewMDFRequestPage() {
 
       if (partnerData) {
         setPartner(partnerData)
+
+        // Load MDF requests to calculate remaining budget
+        const { data: mdfData } = await supabase
+          .from('mdf_requests')
+          .select('*')
+          .eq('partner_id', partnerData.id)
+
+        if (mdfData) {
+          setMdfRequests(mdfData)
+        }
       }
     } catch (error) {
       console.error('Error loading partner:', error)
@@ -128,8 +139,15 @@ export default function NewMDFRequestPage() {
     const requestedAmount = parseFloat(formData.requested_amount)
     const mdfAllocation = partner?.organization?.mdf_allocation || 0
     
-    if (requestedAmount > mdfAllocation) {
-      newErrors.requested_amount = `Amount exceeds your MDF allocation of ${formatCurrency(mdfAllocation)}`
+    // Calculate total approved MDF (approved or disbursed)
+    const totalApproved = mdfRequests
+      .filter(req => req.status === 'approved' || req.status === 'disbursed')
+      .reduce((sum, req) => sum + (req.approved_amount || 0), 0)
+    
+    const remainingBudget = Math.max(0, mdfAllocation - totalApproved)
+    
+    if (requestedAmount > remainingBudget) {
+      newErrors.requested_amount = `Amount exceeds your remaining budget of ${formatCurrency(remainingBudget)}`
     }
 
     if (!formData.description.trim()) {
@@ -251,7 +269,13 @@ export default function NewMDFRequestPage() {
   }
 
   const mdfAllocation = partner?.organization?.mdf_allocation || 0
-  const remainingBudget = mdfAllocation // In a real app, subtract approved amounts
+  
+  // Calculate total approved MDF (same logic as main MDF page)
+  const totalApproved = mdfRequests
+    .filter(req => req.status === 'approved' || req.status === 'disbursed')
+    .reduce((sum, req) => sum + (req.approved_amount || 0), 0)
+  
+  const remainingBudget = Math.max(0, mdfAllocation - totalApproved)
 
   return (
     <div className="py-6">
