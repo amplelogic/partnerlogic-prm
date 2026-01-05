@@ -2,7 +2,7 @@
 // UPDATED VERSION WITH COLLECTIONS/FOLDERS SUPPORT
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { 
@@ -25,6 +25,7 @@ export default function KnowledgeBasePage() {
   const [showFilters, setShowFilters] = useState(false)
   const [partner, setPartner] = useState(null)
   const [viewMode, setViewMode] = useState('grid') // 'grid' or 'list'
+  const resultsRef = useRef(null)
 
   const supabase = createClient()
 
@@ -216,6 +217,14 @@ export default function KnowledgeBasePage() {
     }
   }
 
+  const handleBrowseCollection = (collectionId) => {
+    setCollectionFilter(collectionId)
+    // Scroll to results section smoothly
+    setTimeout(() => {
+      resultsRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    }, 100)
+  }
+
   const calculateStats = () => {
     const totalArticles = filteredArticles.length
     const totalCollections = collections.length
@@ -367,7 +376,7 @@ export default function KnowledgeBasePage() {
                   return (
                     <button
                       key={collection.id}
-                      onClick={() => setCollectionFilter(collection.id)}
+                      onClick={() => handleBrowseCollection(collection.id)}
                       className={`bg-white rounded-xl shadow-sm border-2 hover:shadow-md transition-all text-left ${
                         collectionFilter === collection.id ? 'border-blue-500' : 'border-gray-200'
                       }`}
@@ -403,7 +412,7 @@ export default function KnowledgeBasePage() {
                   return (
                     <button
                       key={collection.id}
-                      onClick={() => setCollectionFilter(collection.id)}
+                      onClick={() => handleBrowseCollection(collection.id)}
                       className={`w-full bg-white rounded-xl shadow-sm border-2 hover:shadow-md transition-all text-left ${
                         collectionFilter === collection.id ? 'border-blue-500' : 'border-gray-200'
                       }`}
@@ -446,7 +455,7 @@ export default function KnowledgeBasePage() {
         )}
 
         {/* Search and Filters */}
-        <div className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
+        <div ref={resultsRef} className="bg-white rounded-xl shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
             <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between space-y-4 lg:space-y-0">
               {/* Search */}
