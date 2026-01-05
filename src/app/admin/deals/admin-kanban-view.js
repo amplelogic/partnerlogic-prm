@@ -2,7 +2,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { DndContext, DragOverlay, closestCorners, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
+import { DndContext, DragOverlay, closestCenter, pointerWithin, rectIntersection, PointerSensor, useSensor, useSensors } from '@dnd-kit/core'
 import { SortableContext, verticalListSortingStrategy, useSortable } from '@dnd-kit/sortable'
 import { CSS } from '@dnd-kit/utilities'
 import { createClient } from '@/lib/supabase/client'
@@ -132,7 +132,7 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
 
 // Column Component
 function KanbanColumn({ stage, deals, activeId }) {
-  const { setNodeRef } = useSortable({
+  const { setNodeRef, isOver } = useSortable({
     id: stage.id,
     data: {
       type: 'column',
@@ -170,7 +170,9 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
 
       <div
         ref={setNodeRef}
-        className="flex-1 p-1.5 overflow-y-auto min-h-[500px] max-h-[calc(100vh-300px)]"
+        className={`flex-1 p-1.5 overflow-y-auto min-h-[500px] max-h-[calc(100vh-300px)] transition-colors ${
+          isOver ? 'bg-purple-50 ring-2 ring-purple-400 ring-inset' : ''
+        }`}
       >
         <SortableContext items={dealsInStage.map(d => d.id)} strategy={verticalListSortingStrategy}>
           {dealsInStage.map(deal => (
@@ -255,10 +257,30 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
   const sensors = useSensors(
     useSensor(PointerSensor, {
       activationConstraint: {
-        distance: 8,
+        distance: 3,
+        delay: 100,
+        tolerance: 5,
       },
     })
   )
+
+  // Custom collision detection for better drop zone detection
+  const collisionDetectionStrategy = (args) => {
+    // First, try pointer-based detection (most accurate for drop zones)
+    const pointerCollisions = pointerWithin(args)
+    if (pointerCollisions.length > 0) {
+      return pointerCollisions
+    }
+
+    // Fall back to intersection-based detection
+    const intersectionCollisions = rectIntersection(args)
+    if (intersectionCollisions.length > 0) {
+      return intersectionCollisions
+    }
+
+    // Finally, use center-based detection
+    return closestCenter(args)
+  }
 
   // Calculate implementation deals count
   const implementationDealsCount = localDeals.filter(deal => 
@@ -446,7 +468,7 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
   return (
     <DndContext
       sensors={sensors}
-      collisionDetection={closestCorners}
+      collisionDetection={collisionDetectionStrategy}
       onDragStart={handleDragStart}
       onDragOver={handleDragOver}
       onDragEnd={handleDragEnd}
