@@ -215,34 +215,30 @@ export default function LoginPage() {
                   <span>Security Check</span>
                 </div>
               </label>
-              <div className="relative">
-                <div className="flex items-center space-x-3">
-                  <div className="flex-1">
-                    <div className="border border-blue-200 rounded-lg px-4 py-3 mb-2">
-                      <p className="text-center text-lg font-semibold text-gray-900">
-                        What is {mathChallenge.num1} + {mathChallenge.num2}?
-                      </p>
-                    </div>
-                    <input
-                      id="mathAnswer"
-                      name="mathAnswer"
-                      type="number"
-                      required
-                      value={mathAnswer}
-                      onChange={(e) => setMathAnswer(e.target.value)}
-                      className="block w-full px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
-                      placeholder="Enter your answer"
-                    />
-                  </div>
-                  <button
-                    type="button"
-                    onClick={generateMathChallenge}
-                    className="px-3 py-2 text-sm text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors"
-                    title="Generate new question"
-                  >
-                    ↻
-                  </button>
+              <div className="flex items-center gap-3">
+                <div className="flex-shrink-0 border border-blue-200 bg-blue-50 rounded-lg px-4 py-3">
+                  <p className="text-base font-semibold text-gray-900 whitespace-nowrap">
+                    What is {mathChallenge.num1} + {mathChallenge.num2}?
+                  </p>
                 </div>
+                <input
+                  id="mathAnswer"
+                  name="mathAnswer"
+                  type="number"
+                  required
+                  value={mathAnswer}
+                  onChange={(e) => setMathAnswer(e.target.value)}
+                  className="flex-1 px-4 py-3 border border-gray-300 rounded-lg text-gray-900 placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  placeholder="Enter your answer"
+                />
+                <button
+                  type="button"
+                  onClick={generateMathChallenge}
+                  className="flex-shrink-0 w-10 h-10 flex items-center justify-center text-blue-600 hover:text-blue-700 hover:bg-blue-50 rounded-lg transition-colors text-xl"
+                  title="Generate new question"
+                >
+                  ↻
+                </button>
               </div>
             </div>
           </div>
