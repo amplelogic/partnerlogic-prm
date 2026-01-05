@@ -282,7 +282,7 @@ const filteredTickets = tickets.filter(ticket => {
                                 {ticket.subject}
                               </p>
                               <p className="text-sm text-gray-500 truncate mt-1">
-                                {ticket.description.substring(0, 60)}...
+                                {ticket.description.substring(0, 40)}...
                               </p>
                             </div>
                           </div>
