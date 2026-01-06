@@ -4,156 +4,181 @@ import { Download, FileText, Loader } from 'lucide-react';
 const InvoiceGenerator = ({ deal, partner }) => {
   const [generating, setGenerating] = useState(false);
 
-  const generateInvoice = () => {
+  const generateInvoice = async () => {
     setGenerating(true);
     
-    // Create invoice HTML
-    const invoiceHTML = `
+    try {
+      const invoiceHTML = `
 <!DOCTYPE html>
 <html>
 <head>
   <meta charset="UTF-8">
-  <title>Invoice - ${deal.customer_name}</title>
+  <title>Invoice_${deal.customer_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0].replace(/-/g, '_')}</title>
+  <script>
+    // Auto-trigger print dialog when page loads
+    window.onload = function() {
+      window.print();
+      // Close window after print dialog is dismissed (optional)
+      window.onafterprint = function() {
+        setTimeout(() => window.close(), 100);
+      };
+    };
+  </script>
   <style>
+    @page {
+      size: A4;
+      margin: 15mm;
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body { 
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; 
-      padding: 40px;
+      padding: 0;
       background: white;
       color: #333;
+      font-size: 11px;
     }
     .invoice-container { 
-      max-width: 800px; 
+      max-width: 100%; 
       margin: 0 auto; 
       background: white;
-      box-shadow: 0 0 20px rgba(0,0,0,0.1);
-      padding: 40px;
+      padding: 20px;
     }
     .header { 
       display: flex; 
       justify-content: space-between; 
-      margin-bottom: 40px;
-      padding-bottom: 20px;
+      margin-bottom: 20px;
+      padding-bottom: 15px;
       border-bottom: 3px solid #2563eb;
     }
     .company-info h1 { 
       color: #2563eb; 
-      font-size: 32px; 
-      margin-bottom: 10px;
+      font-size: 24px; 
+      margin-bottom: 5px;
     }
     .company-info p { 
       color: #666; 
-      line-height: 1.6;
+      line-height: 1.4;
+      font-size: 10px;
     }
     .invoice-details { 
       text-align: right; 
     }
     .invoice-details h2 { 
       color: #2563eb; 
-      font-size: 28px; 
-      margin-bottom: 10px;
+      font-size: 22px; 
+      margin-bottom: 5px;
     }
     .invoice-details p { 
       color: #666; 
-      margin: 5px 0;
+      margin: 3px 0;
+      font-size: 10px;
     }
     .billing-info { 
       display: flex; 
       justify-content: space-between; 
-      margin: 40px 0;
-      gap: 40px;
+      margin: 20px 0;
+      gap: 20px;
     }
     .billing-section { 
       flex: 1;
       background: #f9fafb;
-      padding: 20px;
-      border-radius: 8px;
+      padding: 12px;
+      border-radius: 6px;
     }
     .billing-section h3 { 
       color: #2563eb; 
-      margin-bottom: 15px;
-      font-size: 16px;
+      margin-bottom: 8px;
+      font-size: 11px;
       text-transform: uppercase;
       letter-spacing: 0.5px;
     }
     .billing-section p { 
-      margin: 8px 0; 
+      margin: 4px 0; 
       color: #555;
-      line-height: 1.6;
+      line-height: 1.4;
+      font-size: 10px;
     }
     .items-table { 
       width: 100%; 
-      margin: 40px 0;
+      margin: 20px 0;
       border-collapse: collapse;
     }
     .items-table th { 
       background: #2563eb; 
       color: white; 
-      padding: 15px; 
+      padding: 10px; 
       text-align: left;
       font-weight: 600;
       text-transform: uppercase;
-      font-size: 12px;
+      font-size: 10px;
       letter-spacing: 0.5px;
     }
     .items-table td { 
-      padding: 15px; 
+      padding: 10px; 
       border-bottom: 1px solid #e5e7eb;
-    }
-    .items-table tr:hover { 
-      background: #f9fafb; 
+      font-size: 10px;
     }
     .totals { 
-      margin-top: 30px;
+      margin-top: 15px;
       text-align: right;
     }
     .totals-row { 
       display: flex; 
       justify-content: flex-end; 
-      margin: 10px 0;
-      padding: 10px 0;
+      margin: 6px 0;
+      padding: 6px 0;
     }
     .totals-row.total { 
       border-top: 2px solid #2563eb; 
-      padding-top: 15px;
-      margin-top: 15px;
+      padding-top: 10px;
+      margin-top: 10px;
     }
     .totals-label { 
-      width: 200px; 
+      width: 150px; 
       text-align: right; 
-      padding-right: 20px;
+      padding-right: 15px;
       color: #666;
       font-weight: 500;
+      font-size: 11px;
     }
     .totals-value { 
-      width: 150px; 
+      width: 120px; 
       text-align: right;
       color: #333;
       font-weight: 600;
+      font-size: 11px;
     }
     .totals-row.total .totals-label,
     .totals-row.total .totals-value { 
-      font-size: 20px; 
+      font-size: 16px; 
       color: #2563eb;
       font-weight: 700;
     }
     .footer { 
-      margin-top: 60px; 
-      padding-top: 30px; 
+      margin-top: 30px; 
+      padding-top: 15px; 
       border-top: 2px solid #e5e7eb;
       text-align: center;
       color: #666;
-      font-size: 14px;
-      line-height: 1.8;
+      font-size: 10px;
+      line-height: 1.6;
     }
     .footer strong { 
       color: #2563eb; 
     }
     @media print {
-      body { padding: 0; }
+      body { 
+        padding: 0; 
+        background: white; 
+        font-size: 11px;
+      }
       .invoice-container { 
         box-shadow: none; 
-        padding: 20px;
+        padding: 0;
+        page-break-inside: avoid;
+      }
+      @page {
+        margin: 15mm;
       }
     }
   </style>
@@ -260,46 +285,36 @@ const InvoiceGenerator = ({ deal, partner }) => {
   </div>
 </body>
 </html>
-    `;
+      `;
 
-    // Create a blob and trigger download
-    const blob = new Blob([invoiceHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Invoice_${deal.customer_name.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+      // Open invoice in a new window
+      const printWindow = window.open('', '_blank');
+      if (!printWindow) {
+        alert('Please allow popups for this website to generate invoices.');
+        setGenerating(false);
+        return;
+      }
 
-    setTimeout(() => {
+      printWindow.document.open();
+      printWindow.document.write(invoiceHTML);
+      printWindow.document.close();
+      
       setGenerating(false);
-    }, 1000);
+    } catch (error) {
+      console.error('Error generating invoice:', error);
+      alert('Failed to generate invoice. Please try again.');
+      setGenerating(false);
+    }
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return `${getCurrencySymbol()}0.00`;
+    if (!amount) return formatCurrency(0);
     const currency = deal.currency || 'USD';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
       currency: currency,
       minimumFractionDigits: 2
     }).format(amount);
-  };
-
-  const getCurrencySymbol = () => {
-    const currency = deal.currency || 'USD';
-    const symbols = {
-      'USD': '$',
-      'EUR': '€',
-      'GBP': '£',
-      'JPY': '¥',
-      'INR': '₹',
-      'AUD': 'A$',
-      'CAD': 'C$'
-    };
-    return symbols[currency] || currency + ' ';
   };
 
   return (
