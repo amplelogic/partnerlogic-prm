@@ -91,36 +91,37 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all cursor-move group"
-      {...attributes}
-      {...listeners}
+      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all group"
     >
-      <h4 className="font-medium text-gray-900 text-xs truncate mb-1">
-        {deal.customer_name}
-      </h4>
+      {/* Draggable Area */}
+      <div {...attributes} {...listeners} className="cursor-move">
+        <h4 className="font-medium text-gray-900 text-xs truncate mb-1">
+          {deal.customer_name}
+        </h4>
 
-      {deal.stage && (
-        <div className="mb-1.5">
-          <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${getSalesStageColor(deal.stage)}`}>
-            Sales: {getSalesStageLabel(deal.stage)}
-          </span>
+        {deal.stage && (
+          <div className="mb-1.5">
+            <span className={`inline-flex items-center px-1.5 py-0.5 rounded text-[9px] font-medium ${getSalesStageColor(deal.stage)}`}>
+              Sales: {getSalesStageLabel(deal.stage)}
+            </span>
+          </div>
+        )}
+
+        <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
+          {formatCurrency(deal.deal_value, deal.currency)}
         </div>
-      )}
 
-      <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
-        {formatCurrency(deal.deal_value, deal.currency)}
+        {deal.partner && (
+          <div className="flex items-center text-[10px] text-gray-500 mb-1.5 truncate">
+            <User className="h-2.5 w-2.5 mr-1 flex-shrink-0" />
+            <span className="truncate">{deal.partner.first_name} {deal.partner.last_name}</span>
+          </div>
+        )}
       </div>
 
-      {deal.partner && (
-        <div className="flex items-center text-[10px] text-gray-500 mb-1.5 truncate">
-          <User className="h-2.5 w-2.5 mr-1 flex-shrink-0" />
-          <span className="truncate">{deal.partner.first_name} {deal.partner.last_name}</span>
-        </div>
-      )}
-
+      {/* Open Deal Button - Not draggable */}
       <Link
         href={`/admin/deals/${deal.id}`}
-        onClick={(e) => e.stopPropagation()}
         className="flex items-center justify-center w-full px-2 py-1 bg-purple-50 hover:bg-purple-100 text-purple-600 text-[10px] font-medium rounded transition-colors"
       >
         <span>Open</span>

@@ -53,41 +53,41 @@ function DealCard({ deal, isDragging }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all cursor-move group"
-      {...attributes}
-      {...listeners}
+      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all group"
     >
-      {/* Customer Name */}
-      <h4 className="font-medium text-gray-900 text-xs truncate mb-1.5">
-        {deal.customer_name}
-      </h4>
+      {/* Draggable Area */}
+      <div {...attributes} {...listeners} className="cursor-move">
+        {/* Customer Name */}
+        <h4 className="font-medium text-gray-900 text-xs truncate mb-1.5">
+          {deal.customer_name}
+        </h4>
 
-      {/* Company */}
-      {deal.customer_company && (
-        <p className="text-[10px] text-gray-600 truncate mb-1">
-          {deal.customer_company}
-        </p>
-      )}
+        {/* Company */}
+        {deal.customer_company && (
+          <p className="text-[10px] text-gray-600 truncate mb-1">
+            {deal.customer_company}
+          </p>
+        )}
 
-      {/* Partner Info */}
-      {deal.partners && (
-        <div className="flex items-center text-[10px] text-gray-500 mb-1.5">
-          <User className="h-2.5 w-2.5 mr-0.5" />
-          <span className="truncate">
-            {deal.partners.first_name} {deal.partners.last_name}
-          </span>
+        {/* Partner Info */}
+        {deal.partners && (
+          <div className="flex items-center text-[10px] text-gray-500 mb-1.5">
+            <User className="h-2.5 w-2.5 mr-0.5" />
+            <span className="truncate">
+              {deal.partners.first_name} {deal.partners.last_name}
+            </span>
+          </div>
+        )}
+
+        {/* Price */}
+        <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
+          {formatCurrency(deal.deal_value, deal.currency)}
         </div>
-      )}
-
-      {/* Price */}
-      <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
-        {formatCurrency(deal.deal_value, deal.currency)}
       </div>
 
-      {/* Open Deal Button */}
+      {/* Open Deal Button - Not draggable */}
       <Link
         href={`/partner-manager/deals/${deal.id}`}
-        onClick={(e) => e.stopPropagation()}
         className="flex items-center justify-center w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-medium rounded transition-colors"
       >
         <span>Open</span>

@@ -54,24 +54,24 @@ function DealCard({ deal, isDragging }) {
     <div
       ref={setNodeRef}
       style={style}
-      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all cursor-move group"
-      {...attributes}
-      {...listeners}
+      className="bg-white rounded-md border border-gray-200 p-2 mb-1.5 shadow-sm hover:shadow-md transition-all group"
     >
-      {/* Title */}
-      <h4 className="font-medium text-gray-900 text-xs truncate mb-1.5">
-        {deal.customer_name}
-      </h4>
+      {/* Draggable Area */}
+      <div {...attributes} {...listeners} className="cursor-move">
+        {/* Title */}
+        <h4 className="font-medium text-gray-900 text-xs truncate mb-1.5">
+          {deal.customer_name}
+        </h4>
 
-      {/* Price */}
-      <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
-        {formatCurrency(deal.deal_value, deal.currency)}
+        {/* Price */}
+        <div className="flex items-center text-xs font-semibold text-green-600 mb-1.5">
+          {formatCurrency(deal.deal_value, deal.currency)}
+        </div>
       </div>
 
-      {/* Open Deal Button */}
+      {/* Open Deal Button - Not draggable */}
       <Link
         href={`/dashboard/deals/${deal.id}`}
-        onClick={(e) => e.stopPropagation()}
         className="flex items-center justify-center w-full px-2 py-1 bg-blue-50 hover:bg-blue-100 text-blue-600 text-[10px] font-medium rounded transition-colors"
       >
         <span>Open</span>

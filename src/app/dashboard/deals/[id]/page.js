@@ -386,7 +386,7 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
       <div className="flex items-center justify-between">
         <h2 className="text-lg font-semibold text-gray-900">Deal Information</h2>
         <button className="p-2 text-gray-400 hover:text-gray-600">
-          <Edit2 className="h-5 w-5" />
+          {/* <Edit2 className="h-5 w-5" /> */}
         </button>
       </div>
     </div>

@@ -7,7 +7,7 @@ import Link from 'next/link'
 import dynamic from 'next/dynamic'
 import { 
   Plus, Search, Filter, Eye, DollarSign, Calendar, 
-  User, TrendingUp, BarChart3, ChevronDown, LayoutGrid, List, Download
+  User, TrendingUp, BarChart3, ChevronDown, LayoutGrid, List, Download, Trash2
 } from 'lucide-react'
 import { CURRENCIES } from '@/lib/currencyUtils'
 
@@ -26,8 +26,35 @@ export default function DealsPage() {
   const [showFilters, setShowFilters] = useState(false)
   const [partner, setPartner] = useState(null)
   const [viewMode, setViewMode] = useState('kanban') // 'list' or 'kanban'
+  const [deletingDeal, setDeletingDeal] = useState(null)
   
   const supabase = createClient()
+
+  const handleDeleteDeal = async (dealId, customerName) => {
+    if (!confirm(`Are you sure you want to delete the deal for "${customerName}"? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeletingDeal(dealId)
+
+      const { error } = await supabase
+        .from('deals')
+        .delete()
+        .eq('id', dealId)
+
+      if (error) throw error
+
+      // Reload deals after deletion
+      await loadDeals()
+      alert('Deal deleted successfully')
+    } catch (error) {
+      console.error('Error deleting deal:', error)
+      alert('Failed to delete deal. Please try again.')
+    } finally {
+      setDeletingDeal(null)
+    }
+  }
 
   const stages = [
     { value: 'all', label: 'All Stages', color: 'bg-gray-100 text-gray-800' },
@@ -528,6 +555,18 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
                             <Eye className="h-4 w-4 mr-1" />
                             View
                           </Link>
+                          <button
+                            onClick={() => handleDeleteDeal(deal.id, deal.customer_name)}
+                            disabled={deletingDeal === deal.id}
+                            className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-red-500 disabled:opacity-50"
+                          >
+                            {deletingDeal === deal.id ? (
+                              <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-red-700 mr-1"></div>
+                            ) : (
+                              <Trash2 className="h-4 w-4 mr-1" />
+                            )}
+                            Delete
+                          </button>
                         </div>
                       </div>
                     </div>
