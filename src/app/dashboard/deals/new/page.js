@@ -5,7 +5,10 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
-import { ArrowLeft, Save, User, Mail, Building2, DollarSign, AlertTriangle, CheckCircle, Upload, X, File, FileText, FileImage, FileVideo, Paperclip } from 'lucide-react'
+import { ArrowLeft, Save, User, Mail, Building2, AlertTriangle, 
+  CheckCircle, Upload, X, File, FileText, FileImage, FileVideo, Paperclip,
+  Landmark, Banknote 
+ } from 'lucide-react'
 import { getCurrencyOptions } from '@/lib/currencyUtils'
 import { notifyAdmins, notifyPartnerManager, NotificationTemplates } from '@/lib/notifications'
 
@@ -538,7 +541,7 @@ if (emailError) {
             {/* Deal Information */}
             <div>
               <h3 className="text-lg font-medium text-gray-900 mb-4 flex items-center">
-                <DollarSign className="h-5 w-5 mr-2 text-gray-400" />
+                <Landmark className="h-5 w-5 mr-2 text-gray-400" />
                 Deal Information
               </h3>
               
@@ -549,7 +552,7 @@ if (emailError) {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <Banknote className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="number"
@@ -591,11 +594,11 @@ if (emailError) {
 
                 <div>
                   <label htmlFor="your_commission" className="block text-sm font-medium text-gray-700 mb-2">
-                    Your Commission (USD)
+                    Your Commission
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <Banknote className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="number"
@@ -623,7 +626,7 @@ if (emailError) {
                   </label>
                   <div className="relative">
                     <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                      <DollarSign className="h-5 w-5 text-gray-400" />
+                      <Banknote className="h-5 w-5 text-gray-400" />
                     </div>
                     <input
                       type="number"

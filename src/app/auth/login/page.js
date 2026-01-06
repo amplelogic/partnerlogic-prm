@@ -216,7 +216,7 @@ export default function LoginPage() {
                 </div>
               </label>
               <div className="flex items-center gap-3">
-                <div className="flex-shrink-0 border border-blue-200 bg-blue-50 rounded-lg px-4 py-3">
+                <div className="flex-shrink-0 border border-blue-200 rounded-lg px-4 py-3">
                   <p className="text-base font-semibold text-gray-900 whitespace-nowrap">
                     What is {mathChallenge.num1} + {mathChallenge.num2}?
                   </p>
