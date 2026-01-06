@@ -11,7 +11,7 @@ import {
   DollarSign, Calendar, Tag, MessageSquare, Upload,
   Activity, CheckCircle, Clock, AlertCircle, Plus,
   Phone, FileText, handshake,
-  HandshakeIcon, Download, File, FileImage, FileVideo, Paperclip
+  HandshakeIcon, Download, File, FileImage, FileVideo, Paperclip, TrendingUp
 } from 'lucide-react'
 import { CURRENCIES } from '@/lib/currencyUtils'
 
@@ -446,14 +446,14 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
 
         <div className="space-y-4">
           <div className="flex items-center space-x-3">
-            <DollarSign className="h-5 w-5 text-gray-400" />
+            <TrendingUp className="h-5 w-5 text-gray-400" />
             <div>
               <p className="text-sm font-medium text-gray-900">Deal Value</p>
               <p className="text-sm text-gray-600">{formatCurrency(deal.deal_value, deal.currency)}</p>
             </div>
           </div>
           <div className="flex items-center space-x-3">
-  <DollarSign className="h-5 w-5 text-gray-400" />
+  <TrendingUp className="h-5 w-5 text-gray-400" />
   <div>
     <p className="text-sm font-medium text-gray-900">Partner Commission</p>
     <p className="text-sm text-gray-600">{formatCurrency(deal.your_commission, deal.currency)}</p>
@@ -461,7 +461,7 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
 </div>
 
 <div className="flex items-center space-x-3">
-  <DollarSign className="h-5 w-5 text-gray-400" />
+  <TrendingUp className="h-5 w-5 text-gray-400" />
   <div>
     <p className="text-sm font-medium text-gray-900">Price to Ample Logic</p>
     <p className="text-sm text-gray-600">{formatCurrency(deal.price_to_ample_logic, deal.currency)}</p>

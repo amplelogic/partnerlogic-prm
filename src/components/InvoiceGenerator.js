@@ -279,12 +279,27 @@ const InvoiceGenerator = ({ deal, partner }) => {
   };
 
   const formatCurrency = (amount) => {
-    if (!amount) return '$0.00';
+    if (!amount) return `${getCurrencySymbol()}0.00`;
+    const currency = deal.currency || 'USD';
     return new Intl.NumberFormat('en-US', {
       style: 'currency',
-      currency: 'USD',
+      currency: currency,
       minimumFractionDigits: 2
     }).format(amount);
+  };
+
+  const getCurrencySymbol = () => {
+    const currency = deal.currency || 'USD';
+    const symbols = {
+      'USD': '$',
+      'EUR': '€',
+      'GBP': '£',
+      'JPY': '¥',
+      'INR': '₹',
+      'AUD': 'A$',
+      'CAD': 'C$'
+    };
+    return symbols[currency] || currency + ' ';
   };
 
   return (
