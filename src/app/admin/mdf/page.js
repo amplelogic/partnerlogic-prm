@@ -118,6 +118,44 @@ export default function AdminMDFPage() {
     try {
       setUpdatingStatus(requestId)
 
+      // Validate MDF allocation before approval
+      if (newStatus === 'approved') {
+        const request = requests.find(r => r.id === requestId)
+        if (request && request.status !== 'approved') {
+          const partnerOrg = request.partner?.organization
+          const mdfAllocation = partnerOrg?.mdf_allocation || 0
+          
+          // Get current approved amount for this partner
+          const { data: existingRequests } = await supabase
+            .from('mdf_requests')
+            .select('approved_amount')
+            .eq('partner_id', request.partner_id)
+            .in('status', ['approved', 'disbursed'])
+            .neq('id', requestId)
+          
+          const currentApproved = (existingRequests || []).reduce(
+            (sum, req) => sum + (req.approved_amount || 0), 0
+          )
+          const newApprovedAmount = approvedAmount !== null ? approvedAmount : request.requested_amount
+          const totalAfterApproval = currentApproved + newApprovedAmount
+          
+          if (totalAfterApproval > mdfAllocation) {
+            const remaining = mdfAllocation - currentApproved
+            alert(
+              `Cannot approve this request. This would exceed the partner's MDF allocation.\n\n` +
+              `Partner: ${partnerOrg?.name}\n` +
+              `Annual Allocation: $${mdfAllocation.toLocaleString()}\n` +
+              `Currently Approved: $${currentApproved.toLocaleString()}\n` +
+              `Available: $${remaining.toLocaleString()}\n` +
+              `Requested Approval: $${newApprovedAmount.toLocaleString()}\n\n` +
+              `Please approve a partial amount up to $${remaining.toLocaleString()} or navigate to the request detail page.`
+            )
+            setUpdatingStatus(null)
+            return
+          }
+        }
+      }
+
       const updateData = {
         status: newStatus,
         ...(newStatus === 'approved' && { approved_at: new Date().toISOString() }),

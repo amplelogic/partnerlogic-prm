@@ -8,7 +8,7 @@ import Link from 'next/link'
 import { 
   ArrowLeft, Calendar, DollarSign, Target, Users, 
   TrendingUp, BarChart3, CheckCircle, Clock, XCircle,
-  AlertCircle, Building2, Award, User, Mail, Edit2, Save
+  AlertCircle, Building2, Award, User, Mail, Edit2, Save, AlertTriangle
 } from 'lucide-react'
 
 export default function AdminMDFDetailPage({ params }) {
@@ -20,6 +20,7 @@ export default function AdminMDFDetailPage({ params }) {
   const [editingAmount, setEditingAmount] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [approvedAmount, setApprovedAmount] = useState('')
+  const [allocationWarning, setAllocationWarning] = useState(null)
   const router = useRouter()
   const supabase = createClient()
 
@@ -28,6 +29,48 @@ export default function AdminMDFDetailPage({ params }) {
       loadMDFRequest()
     }
   }, [unwrappedParams.id])
+
+  // Check MDF allocation when status or approved amount changes
+  useEffect(() => {
+    const checkAllocation = async () => {
+      if (!mdfRequest || newStatus !== 'approved' || mdfRequest.status === 'approved') {
+        setAllocationWarning(null)
+        return
+      }
+
+      const partnerOrg = mdfRequest.partner?.organization
+      const mdfAllocation = partnerOrg?.mdf_allocation || 0
+      
+      // Get current approved amount for this partner
+      const { data: existingRequests } = await supabase
+        .from('mdf_requests')
+        .select('approved_amount')
+        .eq('partner_id', mdfRequest.partner_id)
+        .in('status', ['approved', 'disbursed'])
+        .neq('id', mdfRequest.id)
+      
+      const currentApproved = (existingRequests || []).reduce(
+        (sum, req) => sum + (req.approved_amount || 0), 0
+      )
+      const newApprovedAmount = parseFloat(approvedAmount) || 0
+      const totalAfterApproval = currentApproved + newApprovedAmount
+      const remaining = mdfAllocation - currentApproved
+      
+      if (totalAfterApproval > mdfAllocation) {
+        setAllocationWarning({
+          mdfAllocation,
+          currentApproved,
+          remaining,
+          requestedApproval: newApprovedAmount,
+          exceeded: totalAfterApproval - mdfAllocation
+        })
+      } else {
+        setAllocationWarning(null)
+      }
+    }
+
+    checkAllocation()
+  }, [newStatus, approvedAmount, mdfRequest])
 
   const loadMDFRequest = async () => {
     try {
@@ -77,6 +120,40 @@ export default function AdminMDFDetailPage({ params }) {
   const handleStatusUpdate = async () => {
     try {
       setUpdating(true)
+
+      // Validate MDF allocation before approval
+      if (newStatus === 'approved' && !mdfRequest.approved_at) {
+        const partnerOrg = mdfRequest.partner?.organization
+        const mdfAllocation = partnerOrg?.mdf_allocation || 0
+        
+        // Get current approved amount for this partner
+        const { data: existingRequests } = await supabase
+          .from('mdf_requests')
+          .select('approved_amount')
+          .eq('partner_id', mdfRequest.partner_id)
+          .in('status', ['approved', 'disbursed'])
+          .neq('id', mdfRequest.id)
+        
+        const currentApproved = (existingRequests || []).reduce(
+          (sum, req) => sum + (req.approved_amount || 0), 0
+        )
+        const newApprovedAmount = parseFloat(approvedAmount)
+        const totalAfterApproval = currentApproved + newApprovedAmount
+        
+        if (totalAfterApproval > mdfAllocation) {
+          const remaining = mdfAllocation - currentApproved
+          alert(
+            `Cannot approve this request. This would exceed the partner's MDF allocation.\n\n` +
+            `Annual Allocation: $${mdfAllocation.toLocaleString()}\n` +
+            `Currently Approved: $${currentApproved.toLocaleString()}\n` +
+            `Available: $${remaining.toLocaleString()}\n` +
+            `Requested Approval: $${newApprovedAmount.toLocaleString()}\n\n` +
+            `Please approve only up to $${remaining.toLocaleString()} to stay within the 100% utilization limit.`
+          )
+          setUpdating(false)
+          return
+        }
+      }
 
       const updateData = {
         status: newStatus,
@@ -464,6 +541,29 @@ export default function AdminMDFDetailPage({ params }) {
                       </select>
                     </div>
 
+                    {/* MDF Allocation Warning */}
+                    {allocationWarning && (
+                      <div className="bg-red-50 border border-red-200 rounded-lg p-4">
+                        <div className="flex items-start space-x-3">
+                          <AlertTriangle className="h-5 w-5 text-red-600 flex-shrink-0 mt-0.5" />
+                          <div className="flex-1">
+                            <h4 className="text-sm font-semibold text-red-900 mb-2">MDF Allocation Exceeded</h4>
+                            <div className="text-sm text-red-700 space-y-1">
+                              <p>This approval would exceed the partner's annual MDF allocation:</p>
+                              <ul className="list-disc list-inside space-y-0.5 mt-2">
+                                <li>Annual Allocation: <strong>${allocationWarning.mdfAllocation.toLocaleString()}</strong></li>
+                                <li>Currently Approved: <strong>${allocationWarning.currentApproved.toLocaleString()}</strong></li>
+                                <li>Available: <strong>${allocationWarning.remaining.toLocaleString()}</strong></li>
+                                <li>Requested Approval: <strong>${allocationWarning.requestedApproval.toLocaleString()}</strong></li>
+                                <li className="text-red-800 font-semibold">Would Exceed By: <strong>${allocationWarning.exceeded.toLocaleString()}</strong></li>
+                              </ul>
+                              <p className="mt-2 font-medium">Maximum approvable amount: ${allocationWarning.remaining.toLocaleString()}</p>
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
                     <div className="flex space-x-3">
                       <button
                         onClick={handleStatusUpdate}
@@ -546,6 +646,12 @@ export default function AdminMDFDetailPage({ params }) {
                           placeholder="0.00"
                         />
                       </div>
+                      {allocationWarning && newStatus === 'approved' && (
+                        <p className="mt-2 text-sm text-red-600 flex items-center">
+                          <AlertTriangle className="h-4 w-4 mr-1" />
+                          Exceeds available budget by ${allocationWarning.exceeded.toLocaleString()}
+                        </p>
+                      )}
                     </div>
 
                     <div className="flex space-x-3">

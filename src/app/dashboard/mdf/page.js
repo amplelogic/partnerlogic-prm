@@ -7,7 +7,7 @@ import Link from 'next/link'
 import { 
   Plus, Search, Filter, Calendar, DollarSign, TrendingUp,
   CheckCircle, Clock, XCircle, Eye, BarChart3, Target,
-  AlertCircle, Award, ChevronDown
+  AlertCircle, Award, ChevronDown, AlertTriangle
 } from 'lucide-react'
 
 export default function MDFPage() {
@@ -200,39 +200,53 @@ export default function MDFPage() {
         </div>
 
         {/* MDF Allocation Overview */}
-        <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl p-8 text-white mb-8">
+        <div className={`${utilizationRate > 100 ? 'bg-gradient-to-r from-red-600 to-orange-600' : 'bg-gradient-to-r from-blue-600 to-purple-600'} rounded-2xl p-8 text-white mb-8`}>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
             <div className="text-center">
               <div className="text-3xl font-bold mb-2">{formatCurrency(mdfAllocation)}</div>
-              <div className="text-blue-100">Annual Allocation</div>
+              <div className={`${utilizationRate > 100 ? 'text-orange-100' : 'text-blue-100'}`}>Annual Allocation</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold mb-2">{formatCurrency(stats.totalApproved)}</div>
-              <div className="text-blue-100">Approved Funds</div>
+              <div className={`${utilizationRate > 100 ? 'text-orange-100' : 'text-blue-100'}`}>Approved Funds</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold mb-2">{formatCurrency(remainingMDF)}</div>
-              <div className="text-blue-100">Remaining Balance</div>
+              <div className={`${utilizationRate > 100 ? 'text-orange-100' : 'text-blue-100'}`}>Remaining Balance</div>
             </div>
             <div className="text-center">
               <div className="text-3xl font-bold mb-2">{utilizationRate}%</div>
-              <div className="text-blue-100">Utilization Rate</div>
+              <div className={`${utilizationRate > 100 ? 'text-orange-100' : 'text-blue-100'}`}>Utilization Rate</div>
             </div>
           </div>
           
           {/* Progress Bar */}
           <div className="mt-6">
-            <div className="flex justify-between text-sm text-blue-100 mb-2">
+            <div className={`flex justify-between text-sm ${utilizationRate > 100 ? 'text-orange-100' : 'text-blue-100'} mb-2`}>
               <span>MDF Utilization</span>
               <span>{utilizationRate}% used</span>
             </div>
-            <div className="w-full bg-blue-800 rounded-full h-2">
+            <div className={`w-full ${utilizationRate > 100 ? 'bg-red-800' : 'bg-blue-800'} rounded-full h-2`}>
               <div 
-                className="bg-white h-2 rounded-full transition-all duration-300"
+                className={`${utilizationRate > 100 ? 'bg-yellow-300' : 'bg-white'} h-2 rounded-full transition-all duration-300`}
                 style={{ width: `${Math.min(utilizationRate, 100)}%` }}
               ></div>
             </div>
           </div>
+          
+          {/* Over-utilization Warning */}
+          {utilizationRate > 100 && (
+            <div className="mt-4 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg p-4 flex items-start space-x-3">
+              <AlertTriangle className="h-5 w-5 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium">MDF Allocation Exceeded</p>
+                <p className="text-sm text-orange-100 mt-1">
+                  You have exceeded your annual MDF allocation by {formatCurrency(Math.abs(remainingMDF))}. 
+                  Please contact your partner manager to discuss additional funding or adjust approved campaigns.
+                </p>
+              </div>
+            </div>
+          )}
         </div>
 
         {/* Stats Cards */}

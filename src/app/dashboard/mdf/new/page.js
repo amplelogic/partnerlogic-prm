@@ -377,6 +377,15 @@ export default function NewMDFRequestPage() {
                   {errors.requested_amount && (
                     <p className="mt-1 text-sm text-red-600">{errors.requested_amount}</p>
                   )}
+                  {formData.requested_amount && parseFloat(formData.requested_amount) > remainingBudget && (
+                    <div className="mt-2 bg-yellow-50 border border-yellow-200 text-yellow-800 px-3 py-2 rounded-lg flex items-start space-x-2">
+                      <AlertTriangle className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                      <span className="text-sm">
+                        Warning: Requested amount (${parseFloat(formData.requested_amount).toLocaleString()}) exceeds your remaining budget (${remainingBudget.toLocaleString()}). 
+                        This request may be partially approved or rejected.
+                      </span>
+                    </div>
+                  )}
                 </div>
 
                 <div>
