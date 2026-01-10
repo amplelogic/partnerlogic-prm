@@ -247,20 +247,32 @@ const ReferralInvoiceGenerator = ({ referralOrder, partner }) => {
       <p>For any queries, please contact our partner support team</p>
     </div>
   </div>
+  
+  <script>
+    // Auto-trigger print dialog when page loads
+    setTimeout(function() {
+      window.print();
+      // Close window after print dialog is dismissed (optional)
+      window.onafterprint = function() {
+        window.close();
+      };
+    }, 500);
+  </script>
 </body>
 </html>
     `;
 
-    // Create a blob and download
-    const blob = new Blob([invoiceHTML], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = `Referral-Invoice-${referralOrder.client_name.replace(/\s+/g, '-')}-${referralOrder.id.toString().slice(0, 8)}.html`;
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    URL.revokeObjectURL(url);
+    // Open in new window to trigger print dialog (allows Save as PDF)
+    const printWindow = window.open('', '_blank');
+    if (!printWindow) {
+      alert('Please allow popups to generate invoice');
+      setGenerating(false);
+      return;
+    }
+    
+    printWindow.document.open();
+    printWindow.document.write(invoiceHTML);
+    printWindow.document.close();
 
     setGenerating(false);
   };
@@ -339,7 +351,7 @@ const ReferralInvoiceGenerator = ({ referralOrder, partner }) => {
             )}
           </button>
           <p className="mt-2 text-xs text-center text-gray-500">
-            Invoice will be downloaded as an HTML file
+            Click to open print dialog and save as PDF
           </p>
         </div>
       </div>
