@@ -74,13 +74,10 @@ const InvoiceGenerator = ({ deal, partner }) => {
       font-size: 10px;
     }
     .billing-info { 
-      display: flex; 
-      justify-content: space-between; 
       margin: 20px 0;
-      gap: 20px;
     }
     .billing-section { 
-      flex: 1;
+      max-width: 400px;
       background: #f9fafb;
       padding: 12px;
       border-radius: 6px;
@@ -201,15 +198,8 @@ const InvoiceGenerator = ({ deal, partner }) => {
       </div>
     </div>
 
-    <!-- Billing Information -->
+    <!-- Partner Information -->
     <div class="billing-info">
-      <div class="billing-section">
-        <h3>Bill To:</h3>
-        <p><strong>${deal.customer_name}</strong></p>
-        <p>${deal.customer_company || 'N/A'}</p>
-        <p>${deal.customer_email}</p>
-        ${deal.customer_phone ? `<p>${deal.customer_phone}</p>` : ''}
-      </div>
       <div class="billing-section">
         <h3>Partner:</h3>
         <p><strong>${partner?.first_name} ${partner?.last_name}</strong></p>

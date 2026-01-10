@@ -77,10 +77,8 @@ const ReferralInvoiceGenerator = ({ referralOrder, partner }) => {
       font-weight: 600;
     }
     .info-grid { 
-      display: grid; 
-      grid-template-columns: 1fr 1fr; 
-      gap: 30px; 
       margin-bottom: 30px;
+      max-width: 400px;
     }
     .info-block h3 { 
       font-size: 14px; 
@@ -185,13 +183,6 @@ const ReferralInvoiceGenerator = ({ referralOrder, partner }) => {
         <p><strong>${partner?.organization?.name || partner?.first_name && partner?.last_name ? `${partner.first_name} ${partner.last_name}` : 'Partner'}</strong></p>
         ${partner?.email ? `<p>${partner.email}</p>` : ''}
         ${partner?.organization?.name && partner?.first_name && partner?.last_name ? `<p>Contact: ${partner.first_name} ${partner.last_name}</p>` : ''}
-      </div>
-      <div class="info-block">
-        <h3>Client Information</h3>
-        <p><strong>${referralOrder.client_name}</strong></p>
-        ${referralOrder.client_email ? `<p>${referralOrder.client_email}</p>` : ''}
-        ${referralOrder.client_company ? `<p>${referralOrder.client_company}</p>` : ''}
-        ${referralOrder.client_phone ? `<p>${referralOrder.client_phone}</p>` : ''}
       </div>
     </div>
 

@@ -328,8 +328,11 @@ export async function sendInvoiceEmail({
       return { success: false, error: 'Missing configuration' }
     }
 
+    // Send invoice to admin instead of customer
+    const adminEmail = 'billing@amplelogic.com'
+    
     console.log('📧 Sending invoice email via edge function:', {
-      clientEmail: customerEmail,
+      adminEmail,
       partnerManagerEmail,
       dealId: dealId?.slice(0, 8)
     })
@@ -341,7 +344,7 @@ export async function sendInvoiceEmail({
         'Authorization': `Bearer ${supabaseAnonKey}`
       },
       body: JSON.stringify({
-        clientEmail: customerEmail,
+        clientEmail: adminEmail,
         partnerManagerEmail: partnerManagerEmail || null,
         dealDetails: {
           id: dealId,
