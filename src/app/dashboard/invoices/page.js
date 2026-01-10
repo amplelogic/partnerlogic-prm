@@ -44,14 +44,18 @@ export default function PartnerInvoicesPage() {
 
       const { data: partnerData } = await supabase
         .from('partners')
-        .select('*')
+        .select('*, organization:organizations(type)')
         .eq('auth_user_id', user.id)
         .single()
 
       if (!partnerData) return
       setPartner(partnerData)
 
+      const isReferralPartner = partnerData?.organization?.type === 'referral'
+
       // Load partner's closed_won deals
+      // For referral partners, these deals are converted to referral orders
+      // so we don't show them in the Deals tab
       const { data: dealsData, error: dealsError } = await supabase
         .from('deals')
         .select('*, deal_activities!inner(created_at, activity_type)')
@@ -62,7 +66,8 @@ export default function PartnerInvoicesPage() {
       if (dealsError) throw dealsError
 
       // Process deals to add closed_won_date from deal_activities
-      const processedDeals = (dealsData || []).map(deal => {
+      // For referral partners, don't show deals in Deals tab as they're converted to referral orders
+      const processedDeals = isReferralPartner ? [] : (dealsData || []).map(deal => {
         const closedWonActivity = deal.deal_activities?.find(
           activity => activity.activity_type === 'stage_updated' && 
                      (deal.stage === 'closed_won' || deal.admin_stage === 'closed_won')

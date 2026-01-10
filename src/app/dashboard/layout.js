@@ -81,8 +81,9 @@ export default function DashboardLayout({ children }) {
   // Base navigation items
 const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
-  { name: 'Deals', href: '/dashboard/deals', icon: BarChart3 },
-  { name: 'Referral Orders', href: '/dashboard/referral-orders', icon: ShoppingCart },
+  { name: 'All Deals', href: '/dashboard/deals', icon: BarChart3 },
+  // Hide Referral Orders tab for partners with type 'referral'
+  ...(partner?.organization?.type !== 'referral' ? [{ name: 'Referral Orders', href: '/dashboard/referral-orders', icon: ShoppingCart }] : []),
   { name: 'Invoices', href: '/dashboard/invoices', icon: Download },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
   // Conditionally add Learning tab

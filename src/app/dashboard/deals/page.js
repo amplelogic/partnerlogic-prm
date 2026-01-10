@@ -478,6 +478,7 @@ const formatCurrency = (amount, currencyCode = 'USD') => {
               deals={filteredDeals} 
               onDealUpdate={setDeals}
               partnerOrganizationType={partner?.organization?.type}
+              partnerId={partner?.id}
             />
           </div>
         ) : (

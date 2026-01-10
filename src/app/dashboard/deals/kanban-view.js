@@ -176,7 +176,7 @@ function CollapsibleDivider({ isExpanded, onToggle, implementationDealsCount }) 
 }
  
 // Main Kanban Board Component
-export default function KanbanView({ deals, onDealUpdate, partnerOrganizationType }) {
+export default function KanbanView({ deals, onDealUpdate, partnerOrganizationType, partnerId }) {
   const [activeId, setActiveId] = useState(null)
   const [localDeals, setLocalDeals] = useState(deals)
   const [showClosedWonModal, setShowClosedWonModal] = useState(false)
@@ -398,6 +398,15 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
   const handleConfirmClosedWon = async () => {
     if (pendingClosedWonDeal) {
       try {
+        // Check if this is a referral partner
+        const { data: partnerData } = await supabase
+          .from('partners')
+          .select('organization:organizations(type)')
+          .eq('id', partnerId)
+          .single()
+
+        const isReferralPartner = partnerData?.organization?.type === 'referral'
+
         // Check if invoice already sent to prevent duplicates
         const { data: currentDeal } = await supabase
           .from('deals')
@@ -423,6 +432,104 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
               activity_type: 'stage_updated',
               description: `Stage updated to Closed Won`
             }])
+
+          if (onDealUpdate) {
+            onDealUpdate(localDeals)
+          }
+
+          setShowClosedWonModal(false)
+          setPendingClosedWonDeal(null)
+          return
+        }
+
+        // If referral partner, create referral order instead of sending invoice
+        if (isReferralPartner) {
+          console.log('🔄 Creating referral order for referral partner...')
+          console.log('Deal data:', pendingClosedWonDeal)
+          
+          // Create referral order from the deal
+          const { data: referralData, error: referralError } = await supabase
+            .from('referral_orders')
+            .insert([{
+              partner_id: partnerId,
+              client_name: pendingClosedWonDeal.customer_name,
+              client_email: pendingClosedWonDeal.customer_email,
+              client_company: pendingClosedWonDeal.customer_company || null,
+              client_phone: pendingClosedWonDeal.customer_phone || null,
+              product_name: pendingClosedWonDeal.support_type_needed || 'Service',
+              product_description: pendingClosedWonDeal.notes || null,
+              order_value: parseFloat(pendingClosedWonDeal.deal_value) || 0,
+              currency: pendingClosedWonDeal.currency || 'USD',
+              commission_percentage: pendingClosedWonDeal.your_commission && pendingClosedWonDeal.deal_value ? 
+                parseFloat((pendingClosedWonDeal.your_commission / pendingClosedWonDeal.deal_value * 100).toFixed(2)) : 0,
+              commission_amount: parseFloat(pendingClosedWonDeal.your_commission) || 0,
+              expected_delivery_date: new Date().toISOString().split('T')[0],
+              status: 'completed',
+              notes: `Created from Deal: ${pendingClosedWonDeal.customer_name}`
+            }])
+            .select()
+
+          if (referralError) {
+            console.error('❌ Referral order creation failed:', referralError)
+            console.error('Error message:', referralError.message)
+            console.error('Error code:', referralError.code)
+            throw referralError
+          }
+
+          console.log('✅ Referral order created successfully:', referralData)
+
+          // Update deal stage and mark as converted to referral order
+          await supabase
+            .from('deals')
+            .update({
+              stage: pendingClosedWonDeal.stage,
+              invoice_sent_at: new Date().toISOString(),
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', pendingClosedWonDeal.id)
+
+          // Log activity
+          await supabase
+            .from('deal_activities')
+            .insert([{
+              deal_id: pendingClosedWonDeal.id,
+              activity_type: 'stage_updated',
+              description: `Stage updated to Closed Won - Converted to Referral Order`
+            }])
+
+          // Send invoice emails for referral order
+          console.log('📧 Sending invoice emails for referral order...')
+          
+          // Get partner manager email
+          let partnerManagerEmail = null
+          if (pendingClosedWonDeal.partner_id) {
+            const { data: partnerData } = await supabase
+              .from('partners')
+              .select('partner_manager_id')
+              .eq('id', pendingClosedWonDeal.partner_id)
+              .single()
+            
+            if (partnerData?.partner_manager_id) {
+              const { data: managerData } = await supabase
+                .from('partner_managers')
+                .select('email')
+                .eq('id', partnerData.partner_manager_id)
+                .single()
+              
+              partnerManagerEmail = managerData?.email
+            }
+          }
+
+          await sendInvoiceEmail({
+            dealId: pendingClosedWonDeal.id,
+            customerName: pendingClosedWonDeal.customer_name,
+            customerEmail: pendingClosedWonDeal.customer_email,
+            partnerManagerEmail,
+            amount: formatCurrency(pendingClosedWonDeal.deal_value, pendingClosedWonDeal.currency),
+            description: pendingClosedWonDeal.description
+          })
+
+          console.log('✅ Invoice emails sent successfully')
 
           if (onDealUpdate) {
             onDealUpdate(localDeals)
