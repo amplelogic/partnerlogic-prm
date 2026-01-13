@@ -451,7 +451,6 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
       // Notify account users when deal is closed won
       if (newAdminStage === 'closed_won' && oldAdminStage !== 'closed_won') {
         try {
-          // Get all active account users
           const { data: accountUsers } = await supabase
             .from('account_users')
             .select('auth_user_id')
@@ -461,18 +460,16 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
             const dealName = `${activeDeal.customer_company || activeDeal.customer_name}`
             const dealValue = formatCurrency(activeDeal.deal_value, activeDeal.currency)
             
-            // Create notifications for all account users
             const notifications = accountUsers.map(user => ({
               user_id: user.auth_user_id,
               title: 'New Invoice Ready',
               message: `Deal "${dealName}" (${dealValue}) has been closed won. Invoice is ready for processing.`,
               type: 'invoice',
-              read: false,
+              is_read: false,
               reference_id: activeId,
               reference_type: 'deal'
             }))
 
-            // Insert notifications via API route
             await fetch('/api/notifications/create', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
@@ -481,6 +478,60 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
           }
         } catch (error) {
           console.error('Error notifying account users:', error)
+        }
+      }
+
+      // Notify account users when deal is closed won
+      if (newAdminStage === 'closed_won' && oldAdminStage !== 'closed_won') {
+        console.log('🔔 Notifying account users via API...')
+        try {
+          const response = await fetch('/api/notifications/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              notifyAccountUsers: true,
+              dealId: activeId,
+              dealName: `${activeDeal.customer_company || activeDeal.customer_name}`,
+              dealValue: formatCurrency(activeDeal.deal_value, activeDeal.currency)
+            })
+          })
+
+          const result = await response.json()
+          
+          if (response.ok) {
+            console.log('✅ Account users notified successfully:', result)
+          } else {
+            console.error('❌ Failed to notify account users:', result)
+          }
+        } catch (error) {
+          console.error('❌ Error notifying account users:', error)
+        }
+      }
+
+      // Notify account users when deal is closed won via API
+      if (newAdminStage === 'closed_won' && oldAdminStage !== 'closed_won') {
+        console.log('🔔 Notifying account users via API...')
+        try {
+          const response = await fetch('/api/notifications/create', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ 
+              notifyAccountUsers: true,
+              dealId: activeId,
+              dealName: `${activeDeal.customer_company || activeDeal.customer_name}`,
+              dealValue: formatCurrency(activeDeal.deal_value, activeDeal.currency)
+            })
+          })
+
+          const result = await response.json()
+          
+          if (response.ok) {
+            console.log('✅ Account users notified successfully:', result)
+          } else {
+            console.error('❌ Failed to notify account users:', result)
+          }
+        } catch (error) {
+          console.error('❌ Error notifying account users:', error)
         }
       }
 

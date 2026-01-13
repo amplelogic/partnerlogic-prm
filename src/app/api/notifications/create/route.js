@@ -16,8 +16,63 @@ const supabaseAdmin = createClient(
 export async function POST(request) {
   try {
     const body = await request.json()
-    const { notifications } = body
+    const { notifications, notifyAccountUsers, dealId, dealName, dealValue } = body
 
+    // Handle account user notifications for closed won deals
+    if (notifyAccountUsers) {
+      // Get all active account users using admin client
+      const { data: accountUsers, error: accountUsersError } = await supabaseAdmin
+        .from('account_users')
+        .select('auth_user_id')
+        .eq('active', true)
+
+      if (accountUsersError) {
+        console.error('Error fetching account users:', accountUsersError)
+        return NextResponse.json(
+          { error: 'Failed to fetch account users', details: accountUsersError.message },
+          { status: 500 }
+        )
+      }
+
+      if (!accountUsers || accountUsers.length === 0) {
+        return NextResponse.json(
+          { success: true, message: 'No active account users found' },
+          { status: 200 }
+        )
+      }
+
+      // Create notifications for all account users
+      const accountNotifications = accountUsers.map(user => ({
+        user_id: user.auth_user_id,
+        title: 'New Invoice Ready',
+        message: `Deal "${dealName}" (${dealValue}) has been closed won. Invoice is ready for processing.`,
+        type: 'invoice',
+        is_read: false,
+        reference_id: dealId,
+        reference_type: 'deal'
+      }))
+
+      const { data, error } = await supabaseAdmin
+        .from('notifications')
+        .insert(accountNotifications)
+        .select()
+
+      if (error) {
+        console.error('Error creating account user notifications:', error)
+        return NextResponse.json(
+          { error: 'Failed to create notifications', details: error.message },
+          { status: 500 }
+        )
+      }
+
+      return NextResponse.json({ 
+        success: true, 
+        data,
+        message: `Notified ${accountUsers.length} account users`
+      })
+    }
+
+    // Handle regular notifications
     if (!notifications || !Array.isArray(notifications)) {
       return NextResponse.json(
         { error: 'Invalid request: notifications array required' },
