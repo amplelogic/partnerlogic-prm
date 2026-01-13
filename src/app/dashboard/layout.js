@@ -82,8 +82,7 @@ export default function DashboardLayout({ children }) {
 const baseNavigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
   { name: 'All Deals', href: '/dashboard/deals', icon: BarChart3 },
-  // Hide Referral Orders tab for partners with type 'referral'
-  ...(partner?.organization?.type !== 'referral' ? [{ name: 'Referral Orders', href: '/dashboard/referral-orders', icon: ShoppingCart }] : []),
+  // Referral Orders tab is hidden for all partners - deals auto-convert for referral partners
   { name: 'Invoices', href: '/dashboard/invoices', icon: Download },
   { name: 'Support', href: '/dashboard/support', icon: Headphones },
   // Conditionally add Learning tab
