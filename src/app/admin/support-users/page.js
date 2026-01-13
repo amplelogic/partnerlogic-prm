@@ -5,7 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import Link from 'next/link'
 import { 
   Plus, Search, Filter, Eye, Edit, Headphones, Wrench,
-  Users, FileText, CheckCircle, XCircle, Mail, Phone
+  Users, FileText, CheckCircle, XCircle, Mail, Phone, Trash2
 } from 'lucide-react'
 
 export default function AdminSupportUsersPage() {
@@ -15,6 +15,7 @@ export default function AdminSupportUsersPage() {
   const [searchTerm, setSearchTerm] = useState('')
   const [typeFilter, setTypeFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [deletingId, setDeletingId] = useState(null)
 
   const supabase = createClient()
 
@@ -75,6 +76,33 @@ export default function AdminSupportUsersPage() {
     }
 
     setFilteredUsers(filtered)
+  }
+
+  const handleDelete = async (userId, userName) => {
+    if (!confirm(`Are you sure you want to delete ${userName}? This action cannot be undone.`)) {
+      return
+    }
+
+    try {
+      setDeletingId(userId)
+
+      const { error } = await supabase
+        .from('support_users')
+        .delete()
+        .eq('id', userId)
+
+      if (error) throw error
+
+      // Remove from local state
+      setSupportUsers(prev => prev.filter(u => u.id !== userId))
+      
+      alert('Support user deleted successfully')
+    } catch (error) {
+      console.error('Error deleting support user:', error)
+      alert('Failed to delete support user. Please try again.')
+    } finally {
+      setDeletingId(null)
+    }
   }
 
   const getTypeIcon = (type) => {
@@ -314,6 +342,14 @@ export default function AdminSupportUsersPage() {
                           <Edit className="h-4 w-4 mr-1" />
                           Edit
                         </Link>
+                        <button
+                          onClick={() => handleDelete(user.id, `${user.first_name} ${user.last_name}`)}
+                          disabled={deletingId === user.id}
+                          className="inline-flex items-center px-3 py-1.5 border border-red-300 text-sm font-medium rounded-md text-red-700 bg-white hover:bg-red-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        >
+                          <Trash2 className="h-4 w-4 mr-1" />
+                          {deletingId === user.id ? 'Deleting...' : 'Delete'}
+                        </button>
                       </div>
                     </div>
                   </div>
