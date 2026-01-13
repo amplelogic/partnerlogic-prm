@@ -9,7 +9,7 @@ import ReferralInvoiceGenerator from '@/components/ReferralInvoiceGenerator'
 import { 
   Search, Filter, FileText, Download, 
   Building2, User, Mail, DollarSign, Calendar,
-  Eye, ChevronDown, ShoppingCart
+  Eye, ChevronDown, ShoppingCart, Tag
 } from 'lucide-react'
 import { formatCurrency as formatCurrencyUtil } from '@/lib/currencyUtils'
 
@@ -244,6 +244,15 @@ export default function PartnerManagerInvoicesPage() {
     return formatCurrencyUtil(amount, currency)
   }
 
+  const getPartnerTypeBadge = (type) => {
+    const badges = {
+      referral: { label: 'Referral Partner', color: 'bg-purple-100 text-purple-800' },
+      reseller: { label: 'Reseller Partner', color: 'bg-blue-100 text-blue-800' },
+      full_cycle: { label: 'Full Cycle Partner', color: 'bg-indigo-100 text-indigo-800' }
+    }
+    return badges[type] || { label: 'Partner', color: 'bg-gray-100 text-gray-800' }
+  }
+
   if (loading) {
     return (
       <div className="py-6">
@@ -401,6 +410,12 @@ export default function PartnerManagerInvoicesPage() {
                       <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                         Closed Won
                       </span>
+                      {deal.partner?.organization?.type && (
+                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPartnerTypeBadge(deal.partner.organization.type).color}`}>
+                          <Tag className="h-3 w-3 mr-1" />
+                          {getPartnerTypeBadge(deal.partner.organization.type).label}
+                        </span>
+                      )}
                     </div>
 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
@@ -527,6 +542,12 @@ export default function PartnerManagerInvoicesPage() {
                           <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">
                             Completed
                           </span>
+                          {order.partner?.organization?.type && (
+                            <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getPartnerTypeBadge(order.partner.organization.type).color}`}>
+                              <Tag className="h-3 w-3 mr-1" />
+                              {getPartnerTypeBadge(order.partner.organization.type).label}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-gray-600 mb-2">
                           Product: <span className="font-medium">{order.product_name}</span>
