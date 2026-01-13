@@ -102,7 +102,8 @@ export default function AdminInvoicesPage() {
             last_name,
             email,
             organization:organizations (
-              name
+              name,
+              type
             )
           )
         `)
