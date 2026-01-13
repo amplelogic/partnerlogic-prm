@@ -531,6 +531,37 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
 
           console.log('✅ Invoice emails sent successfully')
 
+          // Notify account users about new invoice
+          try {
+            const { data: accountUsers } = await supabase
+              .from('account_users')
+              .select('auth_user_id')
+              .eq('active', true)
+
+            if (accountUsers && accountUsers.length > 0) {
+              const dealName = `${pendingClosedWonDeal.customer_company || pendingClosedWonDeal.customer_name}`
+              const dealValue = formatCurrency(pendingClosedWonDeal.deal_value, pendingClosedWonDeal.currency)
+              
+              const notifications = accountUsers.map(user => ({
+                user_id: user.auth_user_id,
+                title: 'New Invoice Ready',
+                message: `Deal "${dealName}" (${dealValue}) has been closed won. Invoice is ready for processing.`,
+                type: 'invoice',
+                read: false,
+                reference_id: pendingClosedWonDeal.id,
+                reference_type: 'deal'
+              }))
+
+              await fetch('/api/notifications/create', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ notifications })
+              })
+            }
+          } catch (error) {
+            console.error('Error notifying account users:', error)
+          }
+
           if (onDealUpdate) {
             onDealUpdate(localDeals)
           }
@@ -594,6 +625,37 @@ export default function KanbanView({ deals, onDealUpdate, partnerOrganizationTyp
         })
 
         console.log('✅ Invoice emails sent successfully')
+
+        // Notify account users about new invoice
+        try {
+          const { data: accountUsers } = await supabase
+            .from('account_users')
+            .select('auth_user_id')
+            .eq('active', true)
+
+          if (accountUsers && accountUsers.length > 0) {
+            const dealName = `${pendingClosedWonDeal.customer_company || pendingClosedWonDeal.customer_name}`
+            const dealValue = formatCurrency(pendingClosedWonDeal.deal_value, pendingClosedWonDeal.currency)
+            
+            const notifications = accountUsers.map(user => ({
+              user_id: user.auth_user_id,
+              title: 'New Invoice Ready',
+              message: `Deal "${dealName}" (${dealValue}) has been closed won. Invoice is ready for processing.`,
+              type: 'invoice',
+              read: false,
+              reference_id: pendingClosedWonDeal.id,
+              reference_type: 'deal'
+            }))
+
+            await fetch('/api/notifications/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notifications })
+            })
+          }
+        } catch (error) {
+          console.error('Error notifying account users:', error)
+        }
 
         // Notify parent component
         if (onDealUpdate) {

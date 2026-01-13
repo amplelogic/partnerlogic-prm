@@ -448,6 +448,42 @@ export default function AdminKanbanView({ deals, onDealUpdate }) {
         console.error('Error sending notification:', notificationError)
       }
 
+      // Notify account users when deal is closed won
+      if (newAdminStage === 'closed_won' && oldAdminStage !== 'closed_won') {
+        try {
+          // Get all active account users
+          const { data: accountUsers } = await supabase
+            .from('account_users')
+            .select('auth_user_id')
+            .eq('active', true)
+
+          if (accountUsers && accountUsers.length > 0) {
+            const dealName = `${activeDeal.customer_company || activeDeal.customer_name}`
+            const dealValue = formatCurrency(activeDeal.deal_value, activeDeal.currency)
+            
+            // Create notifications for all account users
+            const notifications = accountUsers.map(user => ({
+              user_id: user.auth_user_id,
+              title: 'New Invoice Ready',
+              message: `Deal "${dealName}" (${dealValue}) has been closed won. Invoice is ready for processing.`,
+              type: 'invoice',
+              read: false,
+              reference_id: activeId,
+              reference_type: 'deal'
+            }))
+
+            // Insert notifications via API route
+            await fetch('/api/notifications/create', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ notifications })
+            })
+          }
+        } catch (error) {
+          console.error('Error notifying account users:', error)
+        }
+      }
+
       if (onDealUpdate) {
         const updatedDeals = deals.map(deal => 
           deal.id === activeId ? data[0] : deal

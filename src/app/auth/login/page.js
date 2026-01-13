@@ -86,7 +86,24 @@ export default function LoginPage() {
         return
       }
 
-      // 3. Check if partner manager
+      // 3. Check if account user
+      const { data: accountUserData } = await supabase
+        .from('account_users')
+        .select('id, active')
+        .eq('auth_user_id', data.user.id)
+        .maybeSingle()
+
+      if (accountUserData) {
+        if (!accountUserData.active) {
+          await supabase.auth.signOut()
+          throw new Error('Your account has been deactivated. Please contact an administrator.')
+        }
+        router.push('/accounts')
+        router.refresh()
+        return
+      }
+
+      // 4. Check if partner manager
       const { data: partnerManagerData } = await supabase
         .from('partner_managers')
         .select('id')
@@ -99,7 +116,7 @@ export default function LoginPage() {
         return
       }
 
-      // 4. Check if partner
+      // 5. Check if partner
       const { data: partnerData } = await supabase
         .from('partners')
         .select('id')

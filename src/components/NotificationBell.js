@@ -79,6 +79,18 @@ export default function NotificationBell() {
         return
       }
 
+      // Check if account user
+      const { data: accountData } = await supabase
+        .from('account_users')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+
+      if (accountData) {
+        setUserRole('accounts')
+        return
+      }
+
       // Check if support user
       const { data: supportData } = await supabase
         .from('support_users')
@@ -104,6 +116,7 @@ export default function NotificationBell() {
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
 
+      // Query notifications using auth user_id directly
       const { data, error } = await supabase
         .from('notifications')
         .select('*')
@@ -114,7 +127,7 @@ export default function NotificationBell() {
       if (error) throw error
 
       setNotifications(data || [])
-      setUnreadCount(data?.filter(n => !n.is_read).length || 0)
+      setUnreadCount(data?.filter(n => !n.read).length || 0)
     } catch (error) {
       console.error('Error loading notifications:', error)
     }
@@ -125,8 +138,7 @@ export default function NotificationBell() {
       const { error } = await supabase
         .from('notifications')
         .update({ 
-          is_read: true,
-          read_at: new Date().toISOString()
+          read: true
         })
         .eq('id', notificationId)
 
@@ -141,17 +153,73 @@ export default function NotificationBell() {
   const markAllAsRead = async () => {
     try {
       setLoading(true)
+      
+      // Get the correct user_id based on role
       const { data: { user } } = await supabase.auth.getUser()
       if (!user) return
+
+      let userId = null
+
+      // Check all user types to get the correct ID
+      const { data: partnerData } = await supabase
+        .from('partners')
+        .select('id')
+        .eq('auth_user_id', user.id)
+        .maybeSingle()
+
+      if (partnerData) {
+        userId = partnerData.id
+      } else {
+        const { data: adminData } = await supabase
+          .from('admins')
+          .select('id')
+          .eq('auth_user_id', user.id)
+          .maybeSingle()
+
+        if (adminData) {
+          userId = adminData.id
+        } else {
+          const { data: managerData } = await supabase
+            .from('partner_managers')
+            .select('id')
+            .eq('auth_user_id', user.id)
+            .maybeSingle()
+
+          if (managerData) {
+            userId = managerData.id
+          } else {
+            const { data: accountData } = await supabase
+              .from('account_users')
+              .select('id')
+              .eq('auth_user_id', user.id)
+              .maybeSingle()
+
+            if (accountData) {
+              userId = accountData.id
+            } else {
+              const { data: supportData } = await supabase
+                .from('support_users')
+                .select('id')
+                .eq('auth_user_id', user.id)
+                .maybeSingle()
+
+              if (supportData) {
+                userId = supportData.id
+              }
+            }
+          }
+        }
+      }
+
+      if (!userId) return
 
       const { error } = await supabase
         .from('notifications')
         .update({ 
-          is_read: true,
-          read_at: new Date().toISOString()
+          read: true
         })
-        .eq('user_id', user.id)
-        .eq('is_read', false)
+        .eq('user_id', userId)
+        .eq('read', false)
 
       if (error) throw error
       
