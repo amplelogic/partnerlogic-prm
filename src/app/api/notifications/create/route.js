@@ -23,7 +23,7 @@ export async function POST(request) {
       // Get all active account users using admin client
       const { data: accountUsers, error: accountUsersError } = await supabaseAdmin
         .from('account_users')
-        .select('auth_user_id')
+        .select('auth_user_id, first_name, last_name, email')
         .eq('active', true)
 
       if (accountUsersError) {
@@ -63,6 +63,51 @@ export async function POST(request) {
           { error: 'Failed to create notifications', details: error.message },
           { status: 500 }
         )
+      }
+
+      // Send emails to all account users
+      try {
+        console.log('📧 Sending invoice notification emails to account users...')
+        
+        const emailPromises = accountUsers.map(async (user) => {
+          try {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_SUPABASE_URL}/functions/v1/send-invoice-notification`, {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY}`
+              },
+              body: JSON.stringify({
+                to: user.email,
+                accountUserName: `${user.first_name} ${user.last_name}`,
+                dealName,
+                dealValue,
+                dealId
+              })
+            })
+
+            if (!response.ok) {
+              const errorText = await response.text()
+              console.error(`Failed to send email to ${user.email}:`, errorText)
+              return { email: user.email, success: false, error: errorText }
+            }
+
+            const result = await response.json()
+            console.log(`✅ Email sent to ${user.email}`)
+            return { email: user.email, success: true, result }
+          } catch (emailError) {
+            console.error(`Error sending email to ${user.email}:`, emailError)
+            return { email: user.email, success: false, error: emailError.message }
+          }
+        })
+
+        const emailResults = await Promise.all(emailPromises)
+        const successCount = emailResults.filter(r => r.success).length
+        
+        console.log(`📧 Email sending complete: ${successCount}/${accountUsers.length} successful`)
+      } catch (emailError) {
+        console.error('Error sending notification emails:', emailError)
+        // Don't fail the request if emails fail, notifications were still created
       }
 
       return NextResponse.json({ 
